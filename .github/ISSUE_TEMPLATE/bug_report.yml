@@ -1,7 +1,7 @@
 name: Bug report
 description: Make sure you check if you are purposefully causing an error! (bad installation, etc.)
 title: "[BUG] Title"
-labels: bug
+labels: [ "bug" ]
 body:
 
   - type: checkboxes
@@ -14,20 +14,7 @@ body:
             (I have checked every bug report on GitHub)
           required: true
         - label: |
-            My code's up-to-date, i.e. I've ran `git pull`.
-          required: true
-        - label: |
-            I've tried the develop branch, `git checkout develop`
-          required: true
-        - label: |
             I've cleared the sessions folder.
-          required: true
-        - label: |
-            I've tried running with the --visible flag to see what's causing the error.
-          required: true
-        - label: |
-            This bug wasn't already reported.
-            (I have checked every bug report on GitHub)
           required: true
   - type: checkboxes
     id: title

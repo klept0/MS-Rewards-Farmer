@@ -97,6 +97,7 @@ class Browser:
         options.add_argument("--disable-default-apps")
         options.add_argument("--disable-features=Translate")
         options.add_argument("--disable-features=PrivacySandboxSettings4")
+        options.add_argument("--disable-search-engine-choice-screen") #153
 
         seleniumwireOptions: dict[str, Any] = {"verify_ssl": False}
 

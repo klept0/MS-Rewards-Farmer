@@ -68,13 +68,13 @@ class Searches:
 
         if loadDate is None or loadDate < date.today():
             self.googleTrendsShelf.clear()
-            self.googleTrendsShelf[LOAD_DATE_KEY] = date.today()
             trends = self.getGoogleTrends(
                 browser.getRemainingSearches(desktopAndMobile=True).getTotal()
             )
             random.shuffle(trends)
             for trend in trends:
                 self.googleTrendsShelf[trend] = None
+            self.googleTrendsShelf[LOAD_DATE_KEY] = date.today()
             logging.debug(
                 f"google_trends after load = {list(self.googleTrendsShelf.items())}"
             )
@@ -144,7 +144,7 @@ class Searches:
         # Function to perform a single Bing search
         pointsBefore = self.browser.utils.getAccountPoints()
 
-        rootTerm = list(self.googleTrendsShelf.keys())[1]
+        rootTerm = list(self.googleTrendsShelf.keys())[0]
         terms = self.getRelatedTerms(rootTerm)
         logging.debug(f"terms={terms}")
         termsCycle: cycle[str] = cycle(terms)
