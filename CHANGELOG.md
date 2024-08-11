@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Default trigger time is set to 6:00 AM on a specified day, with instructions to modify settings after importing to Task Scheduler
   - Includes a batch file (`MS_reward.bat`) for automatic execution of the Python script
 
+### Fixed
+
+- [Error when trends fail to load](https://github.com/klept0/MS-Rewards-Farmer/issues/163)
+
 ## [0.1.0] - 2024-07-27
 
 ### Added

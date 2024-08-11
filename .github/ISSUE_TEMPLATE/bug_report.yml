@@ -1,6 +1,6 @@
 name: Bug report
 description: Make sure you check if you are purposefully causing an error! (bad installation, etc.)
-title: "[BUG] Title"
+title: "Title"
 labels: [ "bug" ]
 body:
 
@@ -22,7 +22,7 @@ body:
       label: Title
       options:
         - label: |
-            The title is no longer "[BUG] Title" and I edited it with the right error name.
+            The title is no longer "Title" and I edited it with the right error name.
           required: true
   - type: dropdown
     id: branch
