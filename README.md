@@ -71,6 +71,13 @@
 
    `python main.py`
 
+6. (Windows Only) You can set up automatic execution by generating a Task Scheduler XML file.
+
+   If you are a Windows user, run the `generate_task_xml.py` script to create a `.xml` file. After generating the file, import it into Task Scheduler to schedule automatic execution of the script. This will allow the script to run at the specified time without manual intervention. 
+
+   To import the XML file into Task Scheduler, see [this guide](https://superuser.com/a/485565/709704).
+
+
 ## Launch arguments
 
 - `-v/--visible` to disable headless
@@ -113,4 +120,4 @@ Fork this repo and:
 - [x] Complete "Read To Earn" (30 pts)
 - [x] Setup flags for mobile/desktop search only
 - [ ] Setup flags to load config / save data in working directory
-- [ ] Provide Windows Task Scheduler config
+- [x] Provide Windows Task Scheduler config
