@@ -77,6 +77,9 @@ class MorePromotions:
                 elif "Learn to cook a new recipe" in promotionTitle:
                     searchbar.send_keys("how cook pierogi")
                     searchbar.submit()
+                elif "Find Places to stay" in promotionTitle:
+                    searchbar.send_keys("london hotel")
+                    searchbar.submit()
                 elif promotion["promotionType"] == "urlreward":
                     # Complete search for URL reward
                     self.activities.completeSearch()
