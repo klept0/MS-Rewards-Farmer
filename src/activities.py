@@ -13,16 +13,16 @@ class Activities:
 
     def openDailySetActivity(self, cardId: int):
         # Open the Daily Set activity for the given cardId
-        self.webdriver.find_element(
-            By.XPATH,
-            f'//*[@id="daily-sets"]/mee-card-group[1]/div/mee-card[{cardId}]/div/card-content/mee-rewards-daily-set-item-content/div/a',
-        ).click()
+        element = self.webdriver.find_element(By.XPATH,
+                                              f'//*[@id="daily-sets"]/mee-card-group[1]/div/mee-card[{cardId}]/div/card-content/mee-rewards-daily-set-item-content/div/a', )
+        self.browser.utils.click(element)
         self.browser.utils.switchToNewTab(timeToWait=8)
 
     def openMorePromotionsActivity(self, cardId: int):
         # Open the More Promotions activity for the given cardId
-        self.webdriver.find_element(By.CSS_SELECTOR,
-                                    f"#more-activities > .m-card-group > .ng-scope:nth-child({cardId + 1}) .ds-card-sec").click()
+        element = self.webdriver.find_element(By.CSS_SELECTOR,
+                                              f"#more-activities > .m-card-group > .ng-scope:nth-child({cardId + 1}) .ds-card-sec")
+        self.browser.utils.click(element)
         self.browser.utils.switchToNewTab(timeToWait=5)
 
     def completeSearch(self):

@@ -170,7 +170,7 @@ class Searches:
                 By.ID, "sb_form_q", timeToWait=20
             )
             for _ in range(1000):
-                searchbar.click()
+                self.browser.utils.click(searchbar)
                 searchbar.clear()
                 term = next(termsCycle)
                 logging.debug(f"term={term}")
