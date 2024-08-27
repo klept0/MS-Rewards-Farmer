@@ -41,7 +41,6 @@ class DailySet:
                         self.activities.completeThisOrThat()
                     elif (
                         activity["pointProgressMax"] in [40, 30]
-                        and activity["pointProgress"] == 0
                     ):
                         logging.info(f"[DAILY SET] Completing quiz of card {cardId}")
                         # Complete quiz for specific point progress max

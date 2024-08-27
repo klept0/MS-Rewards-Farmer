@@ -179,7 +179,6 @@ pyrightconfig.json
 # Custom rules (everything added below won't be overridden by 'Generate .gitignore File' if you use 'Update' option)
 
 accounts.json
-config.yaml
 sessions
 logs
 runbot.bat
@@ -187,3 +186,4 @@ runbot.bat
 /google_trends.dat
 /google_trends.dir
 /google_trends.bak
+/config-private.yaml

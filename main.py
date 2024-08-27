@@ -7,6 +7,7 @@ import logging.handlers as handlers
 import random
 import re
 import sys
+import traceback
 from datetime import datetime
 from enum import Enum, auto
 
@@ -41,7 +42,7 @@ def main():
             logging.error("", exc_info=True)
             Utils.sendNotification(
                 f"⚠️ Error executing {currentAccount.username}, please check the log",
-                f"{e1}\n{e1.__traceback__}",
+                traceback.format_exc(),
             )
             continue
         previous_points = previous_points_data.get(currentAccount.username, 0)
@@ -238,7 +239,7 @@ def executeBot(currentAccount: Account, args: argparse.Namespace):
             logging.info(
                 f"[POINTS] You have {utils.formatNumber(startingPoints)} points on your account"
             )
-            # todo Send notification if these fail to Apprise versus just logging
+            # todo Combine these classes so main loop isn't duplicated
             DailySet(desktopBrowser).completeDailySet()
             PunchCards(desktopBrowser).completePunchCards()
             MorePromotions(desktopBrowser).completeMorePromotions()
@@ -356,5 +357,5 @@ if __name__ == "__main__":
     except Exception as e:
         logging.exception("")
         Utils.sendNotification(
-            "⚠️ Error occurred, please check the log", f"{e}\n{e.__traceback__}"
+            "⚠️ Error occurred, please check the log", traceback.format_exc()
         )

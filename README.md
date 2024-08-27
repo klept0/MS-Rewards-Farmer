@@ -47,6 +47,9 @@
 
 4. Edit the `accounts.json.sample` with your accounts credentials and rename it by removing `.sample` at the end.
 
+   The "totp" field is not mandatory, only enter your TOTP key if you use it for 2FA (if ommitting, don't keep
+   it as an empty string, remove the line completely).
+
    The "proxy" field is not mandatory, you can omit it if you don't want to use proxy (don't keep it as an empty string,
    remove the line completely).
 
@@ -54,16 +57,18 @@
 
    ```json
    [
-     {
-       "username": "Your Email 1",
-       "password": "Your Password 1",
-       "proxy": "http://user:pass@host1:port"
-     },
-     {
-       "username": "Your Email 2",
-       "password": "Your Password 2",
-       "proxy": "http://user:pass@host2:port"
-     }
+    {
+        "username": "Your Email 1",
+        "password": "Your Password 1",
+        "totp": "0123 4567 89ab cdef",
+        "proxy": "http://user:pass@host1:port"
+    },
+    {
+        "username": "Your Email 2",
+        "password": "Your Password 2",
+        "totp": "0123 4567 89ab cdef",
+        "proxy": "http://user:pass@host2:port"
+    }
    ]
    ```
 
@@ -89,8 +94,8 @@
   `(ex: http://user:pass@host:port)`
 - `-cv/--chromeversion` to use a specific version of chrome
   `(ex: 118)`
-- `-da/--disable-apprise` to disable Apprise notification, overriding [config.yaml](config.yaml). Useful when running
-  manually as opposed to on a schedule.
+- `-da/--disable-apprise` disables Apprise notifications for the session, overriding [config.yaml](config.yaml).
+  Useful when running manually as opposed to on a schedule.
 - `-t/--searchtype` to only do `desktop` or `mobile` searches, `(ex: --searchtype=mobile)`
 
 ## Features

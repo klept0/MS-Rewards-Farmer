@@ -3,7 +3,7 @@ import logging
 import random
 from pathlib import Path
 from types import TracebackType
-from typing import Any, Type, NamedTuple
+from typing import Any, Type
 
 import ipapi
 import seleniumwire.undetected_chromedriver as webdriver
@@ -12,17 +12,9 @@ from ipapi.exceptions import RateLimited
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver.chrome.webdriver import WebDriver
 
-from src import Account
+from src import Account, RemainingSearches
 from src.userAgentGenerator import GenerateUserAgent
 from src.utils import Utils
-
-
-class RemainingSearches(NamedTuple):
-    desktop: int
-    mobile: int
-
-    def getTotal(self) -> int:
-        return self.desktop + self.mobile
 
 
 class Browser:
@@ -40,6 +32,7 @@ class Browser:
         self.headless = not args.visible
         self.username = account.username
         self.password = account.password
+        self.totp = account.totp
         self.localeLang, self.localeGeo = self.getCCodeLang(args.lang, args.geo)
         self.proxy = None
         if args.proxy:

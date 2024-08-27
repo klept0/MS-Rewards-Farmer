@@ -36,7 +36,6 @@ class MorePromotions:
                 ):
                     logging.debug("Already done, continuing")
                     continue
-                pointsBefore = self.browser.utils.getAccountPoints()
                 self.activities.openMorePromotionsActivity(
                     morePromotions.index(promotion)
                 )
@@ -45,8 +44,9 @@ class MorePromotions:
                     searchbar = self.browser.utils.waitUntilClickable(
                         By.ID, "sb_form_q"
                     )
-                    searchbar.click()
+                    self.browser.utils.click(searchbar)
                 # todo These and following are US-English specific, maybe there's a good way to internationalize
+                # todo Could use dictionary of promotionTitle to search to simplify
                 if "Search the lyrics of a song" in promotionTitle:
                     searchbar.send_keys("black sabbath supernaut lyrics")
                     searchbar.submit()
@@ -69,7 +69,7 @@ class MorePromotions:
                     searchbar.send_keys("directions to new york")
                     searchbar.submit()
                 elif "Too tired to cook tonight?" in promotionTitle:
-                    searchbar.send_keys("pizza delivery near me")
+                    searchbar.send_keys("Pizza Hut near me")
                     searchbar.submit()
                 elif "Quickly convert your money" in promotionTitle:
                     searchbar.send_keys("convert 374 usd to yen")
@@ -77,15 +77,23 @@ class MorePromotions:
                 elif "Learn to cook a new recipe" in promotionTitle:
                     searchbar.send_keys("how cook pierogi")
                     searchbar.submit()
-                elif "Find Places to stay" in promotionTitle:
-                    searchbar.send_keys("london hotel")
+                elif "Find places to stay" in promotionTitle:
+                    searchbar.send_keys("hotels rome italy")
+                    searchbar.submit()
+                elif "How's the economy?" in promotionTitle:
+                    searchbar.send_keys("sp 500")
+                    searchbar.submit()
+                elif "Who won?" in promotionTitle:
+                    searchbar.send_keys("braves score")
+                    searchbar.submit()
+                elif "Gaming time" in promotionTitle:
+                    searchbar.send_keys("vampire survivors video game")
                     searchbar.submit()
                 elif promotion["promotionType"] == "urlreward":
                     # Complete search for URL reward
                     self.activities.completeSearch()
                 elif (
                     promotion["promotionType"] == "quiz"
-                    and promotion["pointProgress"] == 0
                 ):
                     # Complete different types of quizzes based on point progress max
                     if promotion["pointProgressMax"] == 10:
@@ -100,14 +108,6 @@ class MorePromotions:
                 self.browser.webdriver.execute_script("window.scrollTo(0, 1080)")
                 time.sleep(random.randint(5, 10))
 
-                # todo Bundle this into one notification
-                pointsAfter = self.browser.utils.getAccountPoints()
-                if pointsBefore == pointsAfter:
-                    Utils.sendNotification(
-                        "Incomplete promotion",
-                        f"title={promotionTitle} type={promotion['promotionType']}",
-                    )
-
                 self.browser.utils.resetTabs()
                 time.sleep(2)
             except Exception:  # pylint: disable=broad-except
@@ -115,4 +115,10 @@ class MorePromotions:
                 # Reset tabs in case of an exception
                 self.browser.utils.resetTabs()
                 continue
+        incompletePromotions: list[tuple[str, str]] = []
+        for promotion in self.browser.utils.getDashboardData()["morePromotions"]:  # Have to refresh
+            if promotion["pointProgress"] < promotion["pointProgressMax"]:
+                incompletePromotions.append((promotion["title"], promotion["promotionType"]))
+        if incompletePromotions:
+            Utils.sendNotification("Incomplete promotions(s)", incompletePromotions)
         logging.info("[MORE PROMOS] Exiting")

@@ -13,13 +13,12 @@ from typing import Final
 import requests
 from selenium.common import TimeoutException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
 from src.browser import Browser
 from src.utils import Utils
-
-LOAD_DATE_KEY = "loadDate"
 
 
 class RetriesStrategy(Enum):
@@ -60,24 +59,6 @@ class Searches:
 
         dumbDbm = dbm.dumb.open((Utils.getProjectRoot() / "google_trends").__str__())
         self.googleTrendsShelf: shelve.Shelf = shelve.Shelf(dumbDbm)
-        logging.debug(f"googleTrendsShelf.__dict__ = {self.googleTrendsShelf.__dict__}")
-        logging.debug(f"google_trends = {list(self.googleTrendsShelf.items())}")
-        loadDate: date | None = None
-        if LOAD_DATE_KEY in self.googleTrendsShelf:
-            loadDate = self.googleTrendsShelf[LOAD_DATE_KEY]
-
-        if loadDate is None or loadDate < date.today():
-            self.googleTrendsShelf.clear()
-            trends = self.getGoogleTrends(
-                browser.getRemainingSearches(desktopAndMobile=True).getTotal()
-            )
-            random.shuffle(trends)
-            for trend in trends:
-                self.googleTrendsShelf[trend] = None
-            self.googleTrendsShelf[LOAD_DATE_KEY] = date.today()
-            logging.debug(
-                f"google_trends after load = {list(self.googleTrendsShelf.items())}"
-            )
 
     def __enter__(self):
         return self
@@ -97,7 +78,9 @@ class Searches:
                 f"https://trends.google.com/trends/api/dailytrends?hl={self.browser.localeLang}"
                 f'&ed={(date.today() - timedelta(days=i)).strftime("%Y%m%d")}&geo={self.browser.localeGeo}&ns=15'
             )
-            assert r.status_code == requests.codes.ok
+            assert (
+                r.status_code == requests.codes.ok
+            )  # todo Add guidance if assertion fails
             trends = json.loads(r.text[6:])
             for topic in trends["default"]["trendingSearchesDays"][0][
                 "trendingSearches"
@@ -113,10 +96,14 @@ class Searches:
 
     def getRelatedTerms(self, term: str) -> list[str]:
         # Function to retrieve related terms from Bing API
-        relatedTerms: list[str] = requests.get(
-            f"https://api.bing.com/osjson.aspx?query={term}",
-            headers={"User-agent": self.browser.userAgent},
-        ).json()[1]
+        relatedTerms: list[str] = (
+            Utils.makeRequestsSession()
+            .get(
+                f"https://api.bing.com/osjson.aspx?query={term}",
+                headers={"User-agent": self.browser.userAgent},
+            )
+            .json()[1]
+        )  # todo Wrap if failed, or assert response?
         if not relatedTerms:
             return [term]
         return relatedTerms
@@ -129,10 +116,23 @@ class Searches:
 
         self.browser.utils.goToSearch()
 
-        remainingSearches = self.browser.getRemainingSearches()
-        for searchCount in range(1, remainingSearches + 1):
-            # todo Disable cooldown for first 3 searches (Earning starts with your third search)
-            logging.info(f"[BING] {searchCount}/{remainingSearches}")
+        while (remainingSearches := self.browser.getRemainingSearches()) > 0:
+            logging.info(f"[BING] Remaining searches={remainingSearches}")
+            desktopAndMobileRemaining = self.browser.getRemainingSearches(
+                desktopAndMobile=True
+            )
+            if desktopAndMobileRemaining.getTotal() > len(self.googleTrendsShelf):
+                # self.googleTrendsShelf.clear()  # Maybe needed?
+                logging.debug(
+                    f"google_trends before load = {list(self.googleTrendsShelf.items())}"
+                )
+                trends = self.getGoogleTrends(desktopAndMobileRemaining.getTotal())
+                random.shuffle(trends)
+                for trend in trends:
+                    self.googleTrendsShelf[trend] = None
+                logging.debug(
+                    f"google_trends after load = {list(self.googleTrendsShelf.items())}"
+                )
             self.bingSearch()
             time.sleep(random.randint(10, 15))
 
@@ -161,22 +161,24 @@ class Searches:
                 else:
                     raise AssertionError
                 logging.debug(
-                    f"[BING] Search attempt failed {i}/{Searches.maxRetries}, sleeping {sleepTime}"
+                    f"[BING] Search attempt not counted {i}/{Searches.maxRetries}, sleeping {sleepTime}"
                     f" seconds..."
                 )
                 time.sleep(sleepTime)
 
-            searchbar = self.browser.utils.waitUntilClickable(
-                By.ID, "sb_form_q", timeToWait=20
-            )
+            searchbar: WebElement
             for _ in range(1000):
-                self.browser.utils.click(searchbar)
+                searchbar = self.browser.utils.waitUntilClickable(
+                    By.ID, "sb_form_q", timeToWait=40
+                )
                 searchbar.clear()
                 term = next(termsCycle)
                 logging.debug(f"term={term}")
+                time.sleep(1)
                 searchbar.send_keys(term)
+                time.sleep(1)
                 with contextlib.suppress(TimeoutException):
-                    WebDriverWait(self.webdriver, 10).until(
+                    WebDriverWait(self.webdriver, 20).until(
                         expected_conditions.text_to_be_present_in_element_value(
                             (By.ID, "sb_form_q"), term
                         )

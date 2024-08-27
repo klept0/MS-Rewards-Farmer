@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2024-08-25
+
+### Fixed
+
+- [AssertionError from apprise.notify(title=str(title), body=str(body))](https://github.com/klept0/MS-Rewards-Farmer/issues)
+
+## [1.0.0] - 2024-08-23
+
+### Removed
+
+- `apprise.urls` from [config.yaml](config.yaml)
+  - This now lives in `config-private.yaml`, see [.template-config-private.yaml](.template-config-private.yaml) on how
+    to configure
+  - This prevents accidentally leaking sensitive information since `config-private.yaml` is .gitignore'd
+
+### Added
+
+- Support for automatic handling of logins with 2FA and for passwordless setups:
+  - Passwordless login is supported in both visible and headless mode by displaying the code that the user has to select
+    on their phone in the terminal window
+  - 2FA login with TOTPs is supported in both visible and headless mode by allowing the user to provide their TOTP key
+    in `accounts.json` which automatically generates the one time password
+  - 2FA login with device-based authentication is supported in theory, BUT doesn't currently work as the undetected
+    chromedriver for some reason does not receive the confirmation signal after the user approves the login
+- Completing quizzes started but not completed in previous runs
+- Promotions/More activities
+  - Find places to stay
+  - How's the economy?
+  - Who won?
+  - Gaming time
+
+### Changed
+
+- Incomplete promotions Apprise notifications
+  - How incomplete promotions are determined
+  - Batched into single versus multiple notifications
+- Full exception is sent via Apprise versus just error message
+
+### Fixed
+
+- Promotions/More activities
+  - Too tired to cook tonight?
+- [Last searches always timing out](https://github.com/klept0/MS-Rewards-Farmer/issues/172)
+- [Quizzes don't complete](https://github.com/klept0/MS-Rewards-Farmer/issues)
+
 ## [0.2.1] - 2024-08-13
 
 ### Fixed
@@ -20,7 +65,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Allows users to choose between Miniconda, Anaconda, and Local Python
   - Prompts users to input the name of their environment (if using Miniconda or Anaconda)
   - Uses the script directory as the output path
-  - Default trigger time is set to 6:00 AM on a specified day, with instructions to modify settings after importing to Task Scheduler
+  - Default trigger time is set to 6:00 AM on a specified day, with instructions to modify settings after importing to
+    Task Scheduler
   - Includes a batch file (`MS_reward.bat`) for automatic execution of the Python script
 
 ### Fixed

@@ -2,11 +2,13 @@
     {
         "username": "Your Email 1",
         "password": "Your Password 1",
+        "totp": "0123 4567 89ab cdef",
         "proxy": "http://user:pass@host1:port"
     },
     {
         "username": "Your Email 2",
         "password": "Your Password 2",
+        "totp": "0123 4567 89ab cdef",
         "proxy": "http://user:pass@host2:port"
     }
 ]

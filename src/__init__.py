@@ -1,4 +1,5 @@
 from .account import Account
+from .remainingSearches import RemainingSearches
 from .browser import Browser
 from .dailySet import DailySet
 from .login import Login

@@ -1,0 +1,5 @@
+# config-private.yaml
+# Copy this file to config-private.yaml to use
+apprise:
+  urls:
+    - 'discord://WebhookID/WebhookToken'  # Replace with your actual Apprise service URLs
