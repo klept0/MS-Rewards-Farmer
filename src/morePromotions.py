@@ -89,6 +89,12 @@ class MorePromotions:
                 elif "Gaming time" in promotionTitle:
                     searchbar.send_keys("vampire survivors video game")
                     searchbar.submit()
+                elif "Expand your vocabulary" in promotionTitle:
+                    searchbar.send_keys("definition definition")
+                    searchbar.submit()
+                elif "What time is it?" in promotionTitle:
+                    searchbar.send_keys("china time")
+                    searchbar.submit()
                 elif promotion["promotionType"] == "urlreward":
                     # Complete search for URL reward
                     self.activities.completeSearch()
