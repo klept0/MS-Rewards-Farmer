@@ -1,6 +1,6 @@
 # config.yaml
 apprise:
-  summary: ON_ERROR
+  summary: ALWAYS
 retries:
   base_delay_in_seconds: 14.0625 # base_delay_in_seconds * 2^max = 14.0625 * 2^6 = 900 = 15 minutes
   max: 6
