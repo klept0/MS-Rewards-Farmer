@@ -1,4 +1,5 @@
 ### A "simple" python application that uses Selenium to help with your M$ Rewards
+(fork of klept0's mainly so I can more easily use it on different systems and keep track of whats changing)
 
 ![Static Badge](https://img.shields.io/badge/Made_in-python-violet?style=for-the-badge)
 ![MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)
