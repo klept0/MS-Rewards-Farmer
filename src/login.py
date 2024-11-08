@@ -114,14 +114,10 @@ class Login:
                     # TOTP token provided
                     logging.info("[LOGIN] Entering OTP...")
                     otp = TOTP(self.browser.totp.replace(" ", "")).now()
-                    otpField = self.utils.waitUntilClickable(
-                        By.ID, "idTxtBx_SAOTCC_OTC"
-                    )
+                    otpField = self.utils.waitUntilClickable(By.ID, "idTxtBx_SAOTCC_OTC")
                     otpField.send_keys(otp)
                     assert otpField.get_attribute("value") == otp
-                    self.utils.waitUntilClickable(
-                        By.ID, "idSubmit_SAOTCC_Continue"
-                    ).click()
+                    self.utils.waitUntilClickable(By.ID, "idSubmit_SAOTCC_Continue").click()
 
                 else:
                     # TOTP token not provided, manual intervention required
