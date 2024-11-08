@@ -34,12 +34,18 @@ class Login:
 
     def executeLogin(self) -> None:
         # Email field
-        emailField = self.utils.waitUntilVisible(By.ID, "i0116")
-        logging.info("[LOGIN] Entering email...")
-        emailField.click()
-        emailField.send_keys(self.browser.username)
-        assert emailField.get_attribute("value") == self.browser.username
-        self.utils.waitUntilClickable(By.ID, "idSIButton9").click()
+        try:
+            emailField = self.utils.waitUntilVisible(By.ID, "i0116")
+        except TimeoutException:
+            logging.info(
+                "[LOGIN] Email field not found, checking for password field..."
+            )
+        else:
+            logging.info("[LOGIN] Entering email...")
+            emailField.click()
+            emailField.send_keys(self.browser.username)
+            assert emailField.get_attribute("value") == self.browser.username
+            self.utils.waitUntilClickable(By.ID, "idSIButton9").click()
 
         # Passwordless check
         isPasswordless = False
@@ -108,10 +114,14 @@ class Login:
                     # TOTP token provided
                     logging.info("[LOGIN] Entering OTP...")
                     otp = TOTP(self.browser.totp.replace(" ", "")).now()
-                    otpField = self.utils.waitUntilClickable(By.ID, "idTxtBx_SAOTCC_OTC")
+                    otpField = self.utils.waitUntilClickable(
+                        By.ID, "idTxtBx_SAOTCC_OTC"
+                    )
                     otpField.send_keys(otp)
                     assert otpField.get_attribute("value") == otp
-                    self.utils.waitUntilClickable(By.ID, "idSubmit_SAOTCC_Continue").click()
+                    self.utils.waitUntilClickable(
+                        By.ID, "idSubmit_SAOTCC_Continue"
+                    ).click()
 
                 else:
                     # TOTP token not provided, manual intervention required
