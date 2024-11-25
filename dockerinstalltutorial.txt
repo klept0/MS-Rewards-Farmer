@@ -1,0 +1,23 @@
+To prepare your vps do those commands:
+
+  sudo apt-get update
+  sudo apt-get -y install docker.io
+
+Build the docker image (i named it rewards:0.0.1):
+
+  sudo docker build -t rewards:0.0.1 .
+
+To run the bot do:
+  docker run -d --name your_container_name \
+    -e USERNAME="your_email@example.com" \
+    -e PASSWORD="your_password" \
+    -e PROXY="http://user:pass@host1:port" \
+    -e GEOLOCATION="US" \
+    -e LANG="en" \
+    rewards:0.0.1
+
+You can use crontab on host machine to start this automatically:
+  crontab -e
+
+0 9 * * * sleep $((RANDOM % 1801)) && docker restart containername
+

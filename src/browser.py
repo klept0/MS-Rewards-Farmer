@@ -1,20 +1,25 @@
 import argparse
+import contextlib
+import locale
 import logging
+import os
 import random
 from pathlib import Path
 from types import TracebackType
 from typing import Any, Type
 
 import ipapi
+import pycountry
 import seleniumwire.undetected_chromedriver as webdriver
 import undetected_chromedriver
 from ipapi.exceptions import RateLimited
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver.chrome.webdriver import WebDriver
+from selenium.webdriver.common.by import By
 
 from src import Account, RemainingSearches
 from src.userAgentGenerator import GenerateUserAgent
-from src.utils import Utils
+from src.utils import Utils, CONFIG, saveBrowserConfig, getProjectRoot, getBrowserConfig
 
 
 class Browser:
@@ -33,14 +38,14 @@ class Browser:
         self.username = account.username
         self.password = account.password
         self.totp = account.totp
-        self.localeLang, self.localeGeo = self.getCCodeLang(args.lang, args.geo)
+        self.localeLang, self.localeGeo = self.getLanguageCountry(args.lang, args.geo)
         self.proxy = None
         if args.proxy:
             self.proxy = args.proxy
         elif account.proxy:
             self.proxy = account.proxy
         self.userDataDir = self.setupProfiles()
-        self.browserConfig = Utils.getBrowserConfig(self.userDataDir)
+        self.browserConfig = getBrowserConfig(self.userDataDir)
         (
             self.userAgent,
             self.userAgentMetadata,
@@ -48,7 +53,7 @@ class Browser:
         ) = GenerateUserAgent().userAgent(self.browserConfig, mobile)
         if newBrowserConfig:
             self.browserConfig = newBrowserConfig
-            Utils.saveBrowserConfig(self.userDataDir, self.browserConfig)
+            saveBrowserConfig(self.userDataDir, self.browserConfig)
         self.webdriver = self.browserSetup()
         self.utils = Utils(self.webdriver)
         logging.debug("out __init__")
@@ -58,10 +63,10 @@ class Browser:
         return self
 
     def __exit__(
-            self,
-            exc_type: Type[BaseException] | None,
-            exc_value: BaseException | None,
-            traceback: TracebackType | None,
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ):
         # Cleanup actions when exiting the browser context
         logging.debug(
@@ -79,10 +84,15 @@ class Browser:
         options.headless = self.headless
         options.add_argument(f"--lang={self.localeLang}")
         options.add_argument("--log-level=3")
-        options.add_argument("--blink-settings=imagesEnabled=false")      #If you are having MFA sign in issues comment this line out
+        options.add_argument(
+            "--blink-settings=imagesEnabled=false"
+        )  # If you are having MFA sign in issues comment this line out
         options.add_argument("--ignore-certificate-errors")
         options.add_argument("--ignore-certificate-errors-spki-list")
         options.add_argument("--ignore-ssl-errors")
+        if os.environ.get("DOCKER"):
+            options.add_argument("--disable-dev-shm-usage")
+            
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-extensions")
         options.add_argument("--dns-prefetch-disable")
@@ -90,7 +100,9 @@ class Browser:
         options.add_argument("--disable-default-apps")
         options.add_argument("--disable-features=Translate")
         options.add_argument("--disable-features=PrivacySandboxSettings4")
-        options.add_argument("--disable-search-engine-choice-screen") #153
+        options.add_argument("--disable-http2")
+        options.add_argument("--disable-search-engine-choice-screen")  # 153
+        options.page_load_strategy = 'eager'
 
         seleniumwireOptions: dict[str, Any] = {"verify_ssl": False}
 
@@ -101,17 +113,26 @@ class Browser:
                 "https": self.proxy,
                 "no_proxy": "localhost,127.0.0.1",
             }
+        driver = None
 
-        # Obtain webdriver chrome driver version
-        version = self.getChromeVersion()
-        major = int(version.split(".")[0])
+        if os.environ.get("DOCKER"):
+            driver = webdriver.Chrome(
+                options=options,
+                seleniumwire_options=seleniumwireOptions,
+                user_data_dir=self.userDataDir.as_posix(),
+                driver_executable_path="/usr/bin/chromedriver",
+            )
+        else:
+            # Obtain webdriver chrome driver version
+            version = self.getChromeVersion()
+            major = int(version.split(".")[0])
 
-        driver = webdriver.Chrome(
-            options=options,
-            seleniumwire_options=seleniumwireOptions,
-            user_data_dir=self.userDataDir.as_posix(),
-            version_main=major,
-        )
+            driver = webdriver.Chrome(
+                options=options,
+                seleniumwire_options=seleniumwireOptions,
+                user_data_dir=self.userDataDir.as_posix(),
+                version_main=major,
+            )
 
         seleniumLogger = logging.getLogger("seleniumwire")
         seleniumLogger.setLevel(logging.ERROR)
@@ -130,7 +151,7 @@ class Browser:
                 "height": deviceHeight,
                 "width": deviceWidth,
             }
-            Utils.saveBrowserConfig(self.userDataDir, self.browserConfig)
+            saveBrowserConfig(self.userDataDir, self.browserConfig)
 
         if self.mobile:
             screenHeight = deviceHeight + 146
@@ -190,7 +211,7 @@ class Browser:
         Returns:
             Path
         """
-        sessionsDir = Utils.getProjectRoot() / "sessions"
+        sessionsDir = getProjectRoot() / "sessions"
 
         # Concatenate username and browser type for a plain text session ID
         sessionid = f"{self.username}"
@@ -200,19 +221,44 @@ class Browser:
         return sessionsDir
 
     @staticmethod
-    def getCCodeLang(lang: str, geo: str) -> tuple:
-        if lang is None or geo is None:
+    def getLanguageCountry(language: str, country: str) -> tuple[str, str]:
+        if not country:
+            country = CONFIG.get("default").get("location")
+
+        if not language or not country:
+            currentLocale = locale.getlocale()
+            if not language:
+                with contextlib.suppress(ValueError):
+                    language = pycountry.languages.get(
+                        name=currentLocale[0].split("_")[0]
+                    ).alpha_2
+            if not country:
+                with contextlib.suppress(ValueError):
+                    country = pycountry.countries.get(
+                        name=currentLocale[0].split("_")[1]
+                    ).alpha_2
+
+        if not language or not country:
             try:
-                nfo = ipapi.location()
+                ipapiLocation = ipapi.location()
+                if not language:
+                    language = ipapiLocation["languages"].split(",")[0].split("-")[0]
+                if not country:
+                    country = ipapiLocation["country"]
             except RateLimited:
-                logging.warning("Returning default", exc_info=True)
-                return "en", "US"
-            if isinstance(nfo, dict):
-                if lang is None:
-                    lang = nfo["languages"].split(",")[0].split("-")[0]
-                if geo is None:
-                    geo = nfo["country"]
-        return lang, geo
+                logging.warning(exc_info=True)
+
+        if not language:
+            language = "en"
+            logging.warning(
+                f"Not able to figure language returning default: {language}"
+            )
+
+        if not country:
+            country = "US"
+            logging.warning(f"Not able to figure country returning default: {country}")
+
+        return language, country
 
     @staticmethod
     def getChromeVersion() -> str:
@@ -229,29 +275,52 @@ class Browser:
         return version
 
     def getRemainingSearches(
-            self, desktopAndMobile: bool = False
+        self, desktopAndMobile: bool = False
     ) -> RemainingSearches | int:
-        dashboard = self.utils.getDashboardData()
+        # bingInfo = self.utils.getBingInfo()
+        bingInfo = self.utils.getDashboardData()
         searchPoints = 1
-        counters = dashboard["userStatus"]["counters"]
+        counters = bingInfo["userStatus"]["counters"]
+        pcSearch: dict = counters["pcSearch"][0]
+        pointProgressMax: int = pcSearch["pointProgressMax"]
 
-        progressDesktop = counters["pcSearch"][0]["pointProgress"]
-        targetDesktop = counters["pcSearch"][0]["pointProgressMax"]
-        if len(counters["pcSearch"]) >= 2:
-            progressDesktop = progressDesktop + counters["pcSearch"][1]["pointProgress"]
-            targetDesktop = targetDesktop + counters["pcSearch"][1]["pointProgressMax"]
-        if targetDesktop in [30, 90, 102]:
+        searchPoints: int
+        if pointProgressMax in [30, 90, 102]:
             searchPoints = 3
-        elif targetDesktop == 50 or targetDesktop >= 170 or targetDesktop == 150:
+        elif pointProgressMax in [50, 150] or pointProgressMax >= 170:
             searchPoints = 5
-        remainingDesktop = int((targetDesktop - progressDesktop) / searchPoints)
-        remainingMobile = 0
-        if dashboard["userStatus"]["levelInfo"]["activeLevel"] != "Level1":
-            progressMobile = counters["mobileSearch"][0]["pointProgress"]
-            targetMobile = counters["mobileSearch"][0]["pointProgressMax"]
-            remainingMobile = int((targetMobile - progressMobile) / searchPoints)
+        pcPointsRemaining = pcSearch["pointProgressMax"] - pcSearch["pointProgress"]
+        assert pcPointsRemaining % searchPoints == 0
+        remainingDesktopSearches: int = int(pcPointsRemaining / searchPoints)
+
+        activeLevel = bingInfo["userStatus"]["levelInfo"]["activeLevel"]
+        remainingMobileSearches: int = 0
+        if activeLevel == "Level2":
+            mobileSearch: dict = counters["mobileSearch"][0]
+            mobilePointsRemaining = (
+                mobileSearch["pointProgressMax"] - mobileSearch["pointProgress"]
+            )
+            assert mobilePointsRemaining % searchPoints == 0
+            remainingMobileSearches = int(mobilePointsRemaining / searchPoints)
+        elif activeLevel == "Level1":
+            pass
+        else:
+            raise AssertionError(f"Unknown activeLevel: {activeLevel}")
+
         if desktopAndMobile:
-            return RemainingSearches(desktop=remainingDesktop, mobile=remainingMobile)
+            return RemainingSearches(
+                desktop=remainingDesktopSearches, mobile=remainingMobileSearches
+            )
         if self.mobile:
-            return remainingMobile
-        return remainingDesktop
+            return remainingMobileSearches
+        return remainingDesktopSearches
+
+    def getIpAddress(self) -> str:
+        """
+        Visita il sito https://ipv4.icanhazip.com/ e ritorna l'indirizzo IP.
+        """
+        url = "https://ipv4.icanhazip.com/"
+        logging.info(f"Navigating to {url}")
+        self.webdriver.get(url)
+        ip_address = self.webdriver.find_element(By.TAG_NAME, "body").text.strip()
+        return ip_address

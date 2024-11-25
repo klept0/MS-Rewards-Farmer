@@ -1,15 +1,16 @@
-requests~=2.32.3
-selenium>=4.15.2 # not directly required, pinned by Snyk to avoid a vulnerability
-ipapi~=1.0.4
-undetected-chromedriver==3.5.5
-selenium-wire~=5.1.0
-numpy>=1.22.2 # not directly required, pinned by Snyk to avoid a vulnerability
-setuptools
-psutil
-blinker==1.7.0 # prevents issues on newer versions
 apprise~=1.9.0
-pyyaml~=6.0.2
-urllib3>=2.2.2 # not directly required, pinned by Snyk to avoid a vulnerability
-requests-oauthlib~=2.0.0
-zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
+blinker==1.7.0 # prevents issues on newer versions
+numpy>=1.22.2 # not directly required, pinned by Snyk to avoid a vulnerability
+ipapi~=1.0.4
+psutil
+pycountry~=24.6.1
 pyotp~=2.9.0
+pyyaml~=6.0.2
+requests-oauthlib~=2.0.0
+requests~=2.32.3
+selenium-wire~=5.1.0
+selenium>=4.15.2 # not directly required, pinned by Snyk to avoid a vulnerability
+setuptools
+undetected-chromedriver==3.5.5
+urllib3>=2.2.2 # not directly required, pinned by Snyk to avoid a vulnerability
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
