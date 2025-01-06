@@ -1,11 +1,9 @@
-from argparse import Namespace
 from unittest import TestCase
 
-from src.utils import Utils, sendNotification
+from src.utils import CONFIG, sendNotification
 
 
 class TestUtils(TestCase):
     def test_send_notification(self):
-        Utils.args = Namespace()
-        Utils.args.disable_apprise = False
+        CONFIG.apprise.enabled = True
         sendNotification("title", "body")

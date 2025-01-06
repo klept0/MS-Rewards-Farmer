@@ -18,14 +18,12 @@ from src.utils import sendNotification, CONFIG
 
 class Login:
     browser: Browser
-    args: Namespace
     webdriver: Chrome
 
-    def __init__(self, browser: Browser, args: argparse.Namespace):
+    def __init__(self, browser: Browser):
         self.browser = browser
         self.webdriver = browser.webdriver
         self.utils = browser.utils
-        self.args = args
 
     def check_locked_user(self):
         try:
@@ -84,8 +82,8 @@ class Login:
         emailField = self.utils.waitUntilVisible(By.ID, "i0116")
         logging.info("[LOGIN] Entering email...")
         emailField.click()
-        emailField.send_keys(self.browser.username)
-        assert emailField.get_attribute("value") == self.browser.username
+        emailField.send_keys(self.browser.email)
+        assert emailField.get_attribute("value") == self.browser.email
         self.utils.waitUntilClickable(By.ID, "idSIButton9").click()
 
         # Passwordless check
@@ -102,12 +100,7 @@ class Login:
                 "[LOGIN] Confirm your login with code %s on your phone (you have one minute)!\a",
                 codeField.text,
             )
-            if (
-                    CONFIG.get("apprise")
-                            .get("notify")
-                            .get("login-code")
-                            .get("enabled")
-            ):
+            if CONFIG.get("apprise.notify.login-code"):
                 sendNotification(
                     f"Confirm your login on your phone", f"Code: {codeField.text} (expires in 1 minute)")
             self.utils.waitUntilVisible(By.NAME, "kmsiForm", 60)
@@ -149,12 +142,7 @@ class Login:
                     " one minute)!\a",
                     codeField.text,
                 )
-                if (
-                        CONFIG.get("apprise")
-                                .get("notify")
-                                .get("login-code")
-                                .get("enabled")
-                ):
+                if CONFIG.get("apprise.notify.login-code"):
                     sendNotification(
                         f"Confirm your login on your phone", f"Code: {codeField.text} (expires in 1 minute)")
                 self.utils.waitUntilVisible(By.NAME, "kmsiForm", 60)
@@ -176,7 +164,7 @@ class Login:
                     ).click()
                 else:
                     # TOTP token not provided, manual intervention required
-                    assert self.args.visible, (
+                    assert CONFIG.browser.visible, (
                         "[LOGIN] 2FA detected, provide token in accounts.json or or run in"
                         "[LOGIN] 2FA detected, provide token in accounts.json or handle manually."
                         " visible mode to handle login."
@@ -202,7 +190,7 @@ class Login:
 
         if isAskingToProtect:
             assert (
-                self.args.visible
+                CONFIG.browser.visible
             ), "Account protection detected, run in visible mode to handle login"
             print(
                 "Account protection detected, handle prompts and press enter when on rewards page"

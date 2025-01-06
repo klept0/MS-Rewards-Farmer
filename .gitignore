@@ -188,3 +188,4 @@ runbot.bat
 /google_trends.bak
 /config-private.yaml
 mypy.ini
+config.yaml

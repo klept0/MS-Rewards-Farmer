@@ -1,4 +1,3 @@
-import argparse
 import contextlib
 import locale
 import logging
@@ -15,9 +14,8 @@ import undetected_chromedriver
 from ipapi.exceptions import RateLimited
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver.chrome.webdriver import WebDriver
-from selenium.webdriver.common.by import By
 
-from src import Account, RemainingSearches
+from src import RemainingSearches
 from src.userAgentGenerator import GenerateUserAgent
 from src.utils import CONFIG, Utils, getBrowserConfig, getProjectRoot, saveBrowserConfig
 
@@ -28,21 +26,19 @@ class Browser:
     webdriver: undetected_chromedriver.Chrome
 
     def __init__(
-        self, mobile: bool, account: Account, args: argparse.Namespace
+        self, mobile: bool, account
     ) -> None:
         # Initialize browser instance
         logging.debug("in __init__")
         self.mobile = mobile
         self.browserType = "mobile" if mobile else "desktop"
-        self.headless = not args.visible
-        self.username = account.username
+        self.headless = not CONFIG.browser.visible
+        self.email = account.email
         self.password = account.password
-        self.totp = account.totp
-        self.localeLang, self.localeGeo = self.getLanguageCountry(args.lang, args.geo)
-        self.proxy = None
-        if args.proxy:
-            self.proxy = args.proxy
-        elif account.proxy:
+        self.totp = account.get('totp')
+        self.localeLang, self.localeGeo = self.getLanguageCountry(CONFIG.browser.language, CONFIG.browser.geolocation)
+        self.proxy = CONFIG.browser.proxy
+        if not self.proxy and account.get('proxy'):
             self.proxy = account.proxy
         self.userDataDir = self.setupProfiles()
         self.browserConfig = getBrowserConfig(self.userDataDir)
@@ -206,15 +202,15 @@ class Browser:
     def setupProfiles(self) -> Path:
         """
         Sets up the sessions profile for the chrome browser.
-        Uses the username to create a unique profile for the session.
+        Uses the email to create a unique profile for the session.
 
         Returns:
             Path
         """
         sessionsDir = getProjectRoot() / "sessions"
 
-        # Concatenate username and browser type for a plain text session ID
-        sessionid = f"{self.username}"
+        # Concatenate email and browser type for a plain text session ID
+        sessionid = f"{self.email}"
 
         sessionsDir = sessionsDir / sessionid
         sessionsDir.mkdir(parents=True, exist_ok=True)
@@ -223,10 +219,10 @@ class Browser:
     @staticmethod
     def getLanguageCountry(language: str, country: str) -> tuple[str, str]:
         if not country:
-            country = CONFIG.get("default").get("geolocation")
+            country = CONFIG.browser.geolocation
 
         if not language:
-            country = CONFIG.get("default").get("language")
+            country = CONFIG.browser.language
 
         if not language or not country:
             currentLocale = locale.getlocale()

@@ -11,32 +11,6 @@ from src.browser import Browser
 from src.constants import REWARDS_URL
 from src.utils import CONFIG, sendNotification, getAnswerCode
 
-# todo These are US-English specific, maybe there's a good way to internationalize
-ACTIVITY_TITLE_TO_SEARCH = {
-    "Black Friday shopping": "black friday deals",
-    "Discover open job roles": "jobs at microsoft",
-    "Expand your vocabulary": "define demure",
-    "Find places to stay": "hotels rome italy",
-    "Find somewhere new to explore": "directions to new york",
-    "Gaming time": "vampire survivors video game",
-    "Get your shopping done faster": "new iphone",
-    "Houses near you": "apartments manhattan",
-    "How's the economy?": "sp 500",
-    "Learn to cook a new recipe": "how cook pierogi",
-    "Let's watch that movie again!": "aliens movie",
-    "Plan a quick getaway": "flights nyc to paris",
-    "Prepare for the weather": "weather tomorrow",
-    "Quickly convert your money": "convert 374 usd to yen",
-    "Search the lyrics of a song": "black sabbath supernaut lyrics",
-    "Stay on top of the elections": "election news latest",
-    "Too tired to cook tonight?": "Pizza Hut near me",
-    "Translate anything": "translate pencil sharpener to spanish",
-    "What time is it?": "china time",
-    "What's for Thanksgiving dinner?": "pumpkin pie recipe",
-    "Who won?": "braves score",
-    "You can track your package": "usps tracking",
-}
-
 
 class Activities:
     def __init__(self, browser: Browser):
@@ -175,9 +149,7 @@ class Activities:
             if activity["complete"] is True or activity["pointProgressMax"] == 0:
                 logging.debug("Already done, returning")
                 return
-            if activityTitle in CONFIG.get("apprise").get("notify").get(
-                "incomplete-activity"
-            ).get("ignore"):
+            if activityTitle in CONFIG.activities.ignore:
                 logging.debug(f"Ignoring {activityTitle}")
                 return
             # Open the activity for the activity
@@ -193,8 +165,8 @@ class Activities:
             with contextlib.suppress(TimeoutException):
                 searchbar = self.browser.utils.waitUntilClickable(By.ID, "sb_form_q")
                 self.browser.utils.click(searchbar)
-            if activityTitle in ACTIVITY_TITLE_TO_SEARCH:
-                searchbar.send_keys(ACTIVITY_TITLE_TO_SEARCH[activityTitle])
+            if activityTitle in CONFIG.activities.search:
+                searchbar.send_keys(CONFIG.activities.search[activityTitle])
                 sleep(2)
                 searchbar.submit()
             elif "poll" in activityTitle:
@@ -217,8 +189,7 @@ class Activities:
                 self.completeSearch()
         except Exception:
             logging.error(f"[ACTIVITY] Error doing {activityTitle}", exc_info=True)
-        # todo Make configurable
-        sleep(randint(300, 600))
+        sleep(randint(CONFIG.cooldown.min, CONFIG.cooldown.max))
         self.browser.utils.resetTabs()
 
     def completeActivities(self):
@@ -238,12 +209,7 @@ class Activities:
 
         # todo Send one email for all accounts?
         # fixme This is falsely considering some activities incomplete when complete
-        if (
-            CONFIG.get("apprise")
-            .get("notify")
-            .get("incomplete-activity")
-            .get("enabled")
-        ):
+        if CONFIG.get('apprise.notify.incomplete-activity'):
             incompleteActivities: dict[str, tuple[str, str, str]] = {}
             for activity in (
                 self.browser.utils.getDailySetPromotions()
@@ -255,17 +221,12 @@ class Activities:
                         activity["pointProgress"],
                         activity["pointProgressMax"],
                     )
-            for incompleteActivityToIgnore in (
-                CONFIG.get("apprise")
-                .get("notify")
-                .get("incomplete-activity")
-                .get("ignore")
-            ):
+            for incompleteActivityToIgnore in CONFIG.activities.ignore:
                 incompleteActivities.pop(incompleteActivityToIgnore, None)
             if incompleteActivities:
                 logging.info(f"incompleteActivities: {incompleteActivities}")
                 sendNotification(
-                    f"We found some incomplete activities for {self.browser.username}",
+                    f"We found some incomplete activities for {self.browser.email}",
                     str(incompleteActivities) + "\n" + REWARDS_URL,
                 )
 

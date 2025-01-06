@@ -32,16 +32,16 @@ class RetriesStrategy(Enum):
 
 
 class Searches:
-    maxRetries: Final[int] = CONFIG.get("retries").get("max")
+    maxRetries: Final[int] = CONFIG.retries.max
     """
     the max amount of retries to attempt
     """
-    baseDelay: Final[float] = CONFIG.get("retries").get("base_delay_in_seconds")
+    baseDelay: Final[float] = CONFIG.get("retries.base_delay_in_seconds")
     """
     how many seconds to delay
     """
     # retriesStrategy = Final[  # todo Figure why doesn't work with equality below
-    retriesStrategy = RetriesStrategy[CONFIG.get("retries").get("strategy")]
+    retriesStrategy = RetriesStrategy[CONFIG.retries.strategy]
 
     def __init__(self, browser: Browser):
         self.browser = browser
@@ -182,8 +182,7 @@ class Searches:
 
             pointsAfter = self.browser.utils.getAccountPoints()
             if pointsBefore < pointsAfter:
-                # todo Make configurable
-                sleep(randint(300, 600))
+                sleep(randint(CONFIG.cooldown.min, CONFIG.cooldown.max))
                 return
 
             # todo

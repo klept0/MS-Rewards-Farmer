@@ -27,7 +27,7 @@ class ReadToEarn:
 
         logging.info("[READ TO EARN] " + "Trying to complete Read to Earn...")
 
-        accountName = self.browser.username
+        accountName = self.browser.email
 
         # Should Really Cache Token and load it in.
         # To Save token
