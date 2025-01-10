@@ -69,29 +69,76 @@ class Searches:
     def getGoogleTrends(self, wordsCount: int) -> list[str]:
         # Function to retrieve Google Trends search terms
         searchTerms: list[str] = []
-        i = 0
+        days_back = 0
+        max_retries = 10  # Maximum number of days to look back
         session = Utils.makeRequestsSession()
-        while len(searchTerms) < wordsCount:
-            i += 1
+
+        while len(searchTerms) < wordsCount and days_back < max_retries:
+            days_back += 1
             # Fetching daily trends from Google Trends API
-            r = session.get(
-                f"https://trends.google.com/trends/api/dailytrends?hl={self.browser.localeLang}"
-                f'&ed={(date.today() - timedelta(days=i)).strftime("%Y%m%d")}&geo={self.browser.localeGeo}&ns=15'
-            )
-            assert (
-                r.status_code == requests.codes.ok
-            )  # todo Add guidance if assertion fails
-            trends = json.loads(r.text[6:])
-            for topic in trends["default"]["trendingSearchesDays"][0][
-                "trendingSearches"
-            ]:
-                searchTerms.append(topic["title"]["query"].lower())
-                searchTerms.extend(
-                    relatedTopic["query"].lower()
-                    for relatedTopic in topic["relatedQueries"]
+            try:
+                r = session.get(
+                    f"https://trends.google.com/trends/api/dailytrends?hl={self.browser.localeLang}"
+                    f'&ed={(date.today() - timedelta(days=days_back)).strftime("%Y%m%d")}&geo={self.browser.localeGeo}&ns=15'
                 )
-            searchTerms = list(set(searchTerms))
-        del searchTerms[wordsCount : (len(searchTerms) + 1)]
+
+                if r.status_code != requests.codes.ok:
+                    logging.warning(
+                        f"[GOOGLE TRENDS] Failed to fetch trends, status code: {r.status_code}"
+                    )
+                    continue
+
+                try:
+                    trends = json.loads(r.text[6:])
+                except json.JSONDecodeError as e:
+                    logging.warning(
+                        f"[GOOGLE TRENDS] Failed to decode JSON response: {e}"
+                    )
+                    continue
+
+                # Validate the response structure
+                if not trends.get("default"):
+                    logging.warning("[GOOGLE TRENDS] Missing 'default' key in response")
+                    continue
+
+                trending_days = trends["default"].get("trendingSearchesDays", [])
+                if not trending_days:
+                    logging.warning(
+                        "[GOOGLE TRENDS] No trending searches found for this day"
+                    )
+                    continue
+
+                trending_searches = trending_days[0].get("trendingSearches", [])
+                if not trending_searches:
+                    logging.warning("[GOOGLE TRENDS] Empty trending searches list")
+                    continue
+
+                for topic in trending_searches:
+                    if "title" in topic and "query" in topic["title"]:
+                        searchTerms.append(topic["title"]["query"].lower())
+                        if "relatedQueries" in topic:
+                            searchTerms.extend(
+                                relatedTopic["query"].lower()
+                                for relatedTopic in topic["relatedQueries"]
+                                if "query" in relatedTopic
+                            )
+
+                searchTerms = list(set(searchTerms))
+
+            except Exception as e:
+                logging.error(f"[GOOGLE TRENDS] Unexpected error: {str(e)}")
+                continue
+
+        if len(searchTerms) < wordsCount:
+            logging.warning(
+                f"[GOOGLE TRENDS] Could only fetch {len(searchTerms)} terms out of {wordsCount} requested"
+            )
+            # Pad with dummy searches if we don't have enough terms
+            while len(searchTerms) < wordsCount:
+                searchTerms.append(f"news {random.randint(1, 1000)}")
+        else:
+            del searchTerms[wordsCount:]
+
         return searchTerms
 
     def getRelatedTerms(self, term: str) -> list[str]:
