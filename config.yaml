@@ -10,13 +10,14 @@ apprise:
       enabled: True # True or False
     login-code:
       enabled: True # True or False
-  summary: ON_ERROR
+  summary: NEVER
 default:
-  geolocation: US # Replace with your country code https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
-  language: en # Replace with your language code https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
+  pause_after_login: False # True, pause Script after Login
+  geolocation: DE # Replace with your country code https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
+  language: de # Replace with your language code https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
 logging:
   level: INFO # See https://docs.python.org/3/library/logging.html#logging-levels
 retries:
-  base_delay_in_seconds: 120 # base_delay_in_seconds * 2^max = 14.0625 * 2^6 = 900 = 15 minutes
-  max: 4
+  base_delay_in_seconds: 2 # base_delay_in_seconds * 2^max = 14.0625 * 2^6 = 900 = 15 minutes
+  max: 1
   strategy: EXPONENTIAL

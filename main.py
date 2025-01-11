@@ -234,6 +234,13 @@ def executeBot(currentAccount: Account, args: argparse.Namespace):
         with Browser(mobile=False, account=currentAccount, args=args) as desktopBrowser:
             utils = desktopBrowser.utils
             Login(desktopBrowser, args).login()
+            logging.info("[LOGIN] Successfully logged in.")
+
+            # Check if the script should pause after login
+            if CONFIG.get("default").get("pause_after_login", False):
+                logging.info("[PAUSE] Pausing after login. Press Enter to continue...")
+                input()  # Wait for user input to continue
+
             startingPoints = utils.getAccountPoints()
             logging.info(
                 f"[POINTS] You have {formatNumber(startingPoints)} points on your account"
@@ -257,6 +264,13 @@ def executeBot(currentAccount: Account, args: argparse.Namespace):
         with Browser(mobile=True, account=currentAccount, args=args) as mobileBrowser:
             utils = mobileBrowser.utils
             Login(mobileBrowser, args).login()
+            logging.info("[LOGIN] Successfully logged in (mobile).")
+
+            # Check if the script should pause after login
+            if CONFIG.get("default").get("pause_after_login", False):
+                logging.info("[PAUSE] Pausing after login. Press Enter to continue...")
+                input()  # Wait for user input to continue
+
             if startingPoints is None:
                 startingPoints = utils.getAccountPoints()
             ReadToEarn(mobileBrowser).completeReadToEarn()
@@ -272,16 +286,16 @@ def executeBot(currentAccount: Account, args: argparse.Namespace):
             accountPoints = utils.getAccountPoints()
 
     logging.info(
-        f"[POINTS] You have earned {formatNumber(accountPoints - startingPoints)} points this run !"
+        f"[POINTS] You have earned {formatNumber(accountPoints - startingPoints)} points this run!"
     )
-    logging.info(f"[POINTS] You are now at {formatNumber(accountPoints)} points !")
+    logging.info(f"[POINTS] You are now at {formatNumber(accountPoints)} points!")
     appriseSummary = AppriseSummary[CONFIG.get("apprise").get("summary")]
     if appriseSummary == AppriseSummary.ALWAYS:
         goalStatus = ""
         if goalPoints > 0:
             logging.info(
                 f"[POINTS] You are now at {(formatNumber((accountPoints / goalPoints) * 100))}% of your "
-                f"goal ({goalTitle}) !"
+                f"goal ({goalTitle})!"
             )
             goalStatus = (
                 f"🎯 Goal reached: {(formatNumber((accountPoints / goalPoints) * 100))}%"

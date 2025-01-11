@@ -11,43 +11,28 @@ from typing import Final
 
 import requests
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 from src.browser import Browser
 from src.utils import CONFIG, makeRequestsSession, getProjectRoot
 
-
 class RetriesStrategy(Enum):
-    """
-    method to use when retrying
-    """
-
     EXPONENTIAL = auto()
-    """
-    an exponentially increasing `base_delay_in_seconds` between attempts
-    """
     CONSTANT = auto()
-    """
-    the default; a constant `base_delay_in_seconds` between attempts
-    """
-
 
 class Searches:
     maxRetries: Final[int] = CONFIG.get("retries").get("max")
-    """
-    the max amount of retries to attempt
-    """
     baseDelay: Final[float] = CONFIG.get("retries").get("base_delay_in_seconds")
-    """
-    how many seconds to delay
-    """
-    # retriesStrategy = Final[  # todo Figure why doesn't work with equality below
     retriesStrategy = RetriesStrategy[CONFIG.get("retries").get("strategy")]
 
     def __init__(self, browser: Browser):
         self.browser = browser
         self.webdriver = browser.webdriver
 
-        dumbDbm = dbm.dumb.open((getProjectRoot() / "google_trends").__str__())
+        db_path = getProjectRoot() / "google_trends"
+        dumbDbm = dbm.dumb.open(str(db_path))
         self.googleTrendsShelf: shelve.Shelf = shelve.Shelf(dumbDbm)
 
     def __enter__(self):
@@ -57,102 +42,116 @@ class Searches:
         self.googleTrendsShelf.__exit__(None, None, None)
 
     def getGoogleTrends(self, wordsCount: int) -> list[str]:
-        # Function to retrieve Google Trends search terms
-        searchTerms: list[str] = []
-        i = 0
+        logging.info("Fetching Google Trends data...")
+        searchTerms = []
         session = makeRequestsSession()
-        while len(searchTerms) < wordsCount:
-            i += 1
-            # Fetching daily trends from Google Trends API
+
+        for i in range(1, wordsCount + 1):
             r = session.get(
-                f"https://trends.google.com/trends/api/dailytrends?hl={self.browser.localeLang}"
+                f"https://trends.google.com/trends/api/dailytrends?hl={self.browser.localeLang}" \
                 f'&ed={(date.today() - timedelta(days=i)).strftime("%Y%m%d")}&geo={self.browser.localeGeo}&ns=15'
             )
-            assert (
-                r.status_code == requests.codes.ok
-            ), "Adjust retry config in src.utils.Utils.makeRequestsSession"
+
+            if r.status_code != requests.codes.ok:
+                logging.error("Failed to fetch Google Trends data, retry config may need adjustment.")
+                continue
+
             trends = json.loads(r.text[6:])
-            for topic in trends["default"]["trendingSearchesDays"][0][
-                "trendingSearches"
-            ]:
+            for topic in trends["default"]["trendingSearchesDays"][0]["trendingSearches"]:
                 searchTerms.append(topic["title"]["query"].lower())
                 searchTerms.extend(
-                    relatedTopic["query"].lower()
-                    for relatedTopic in topic["relatedQueries"]
+                    relatedTopic["query"].lower() for relatedTopic in topic["relatedQueries"]
                 )
+
             searchTerms = list(set(searchTerms))
-        del searchTerms[wordsCount : (len(searchTerms) + 1)]
-        return searchTerms
 
-    def getRelatedTerms(self, term: str) -> list[str]:
-        # Function to retrieve related terms from Bing API
-        relatedTerms: list[str] = (
-            makeRequestsSession()
-            .get(
-                f"https://api.bing.com/osjson.aspx?query={term}",
-                headers={"User-agent": self.browser.userAgent},
-            )
-            .json()[1]
-        )  # todo Wrap if failed, or assert response?
-        if not relatedTerms:
-            return [term]
-        return relatedTerms
-
-    def bingSearches(self) -> None:
-        # Function to perform Bing searches
-        logging.info(
-            f"[BING] Starting {self.browser.browserType.capitalize()} Edge Bing searches..."
-        )
-
-        self.browser.utils.goToSearch()
-
-        while True:
-            desktopAndMobileRemaining = self.browser.getRemainingSearches(
-                desktopAndMobile=True
-            )
-            logging.info(f"[BING] Remaining searches={desktopAndMobileRemaining}")
-            if (
-                self.browser.browserType == "desktop"
-                and desktopAndMobileRemaining.desktop == 0
-            ) or (
-                self.browser.browserType == "mobile"
-                and desktopAndMobileRemaining.mobile == 0
-            ):
+            if len(searchTerms) >= wordsCount:
                 break
 
-            if desktopAndMobileRemaining.getTotal() > len(self.googleTrendsShelf):
-                # self.googleTrendsShelf.clear()  # Maybe needed?
-                logging.debug(
-                    f"google_trends before load = {list(self.googleTrendsShelf.items())}"
-                )
-                trends = self.getGoogleTrends(desktopAndMobileRemaining.getTotal())
+        logging.info(f"Retrieved {len(searchTerms)} Google Trends terms.")
+        return searchTerms[:wordsCount]
+
+    def getRelatedTerms(self, term: str) -> list[str]:
+        logging.debug(f"Fetching related terms for: {term}")
+        response = makeRequestsSession().get(
+            f"https://api.bing.com/osjson.aspx?query={term}",
+            headers={"User-agent": self.browser.userAgent},
+        )
+
+        if response.status_code != requests.codes.ok:
+            logging.error(f"Failed to fetch related terms for: {term}")
+            return [term]
+
+        relatedTerms = response.json()[1]
+        logging.debug(f"Related terms for {term}: {relatedTerms}")
+        return relatedTerms if relatedTerms else [term]
+
+    def bingSearches(self) -> None:
+        logging.info(f"Starting {self.browser.browserType.capitalize()} Bing searches...")
+
+        # Initialize rewards.bing.com tab
+        rewards_tab = None
+        for handle in self.webdriver.window_handles:
+            self.webdriver.switch_to.window(handle)
+            if self.webdriver.current_url.startswith("https://rewards.bing.com"):
+                rewards_tab = handle
+                break
+
+        if not rewards_tab:
+            logging.info("Opening rewards.bing.com in a new tab...")
+            self.webdriver.execute_script("window.open('https://rewards.bing.com');")
+            rewards_tab = self.webdriver.window_handles[-1]
+
+        # Initialize bing.com tab
+        search_tab = None
+        for handle in self.webdriver.window_handles:
+            self.webdriver.switch_to.window(handle)
+            if self.webdriver.current_url.startswith("https://www.bing.com"):
+                search_tab = handle
+                break
+
+        if not search_tab:
+            logging.info("Opening bing.com in a new tab...")
+            self.webdriver.execute_script("window.open('https://www.bing.com');")
+            search_tab = self.webdriver.window_handles[-1]
+
+        while True:
+            # Switch to rewards.bing.com tab to check remaining searches
+            self.webdriver.switch_to.window(rewards_tab)
+            remainingSearches = self.browser.getRemainingSearches(desktopAndMobile=True)
+            logging.info(f"Remaining searches: {remainingSearches}")
+
+            if (self.browser.browserType == "desktop" and remainingSearches.desktop == 0) or \
+            (self.browser.browserType == "mobile" and remainingSearches.mobile == 0):
+                break
+
+            # Ensure we have enough Google Trends terms
+            if remainingSearches.getTotal() > len(self.googleTrendsShelf):
+                trends = self.getGoogleTrends(remainingSearches.getTotal())
                 shuffle(trends)
                 for trend in trends:
                     self.googleTrendsShelf[trend] = None
-                logging.debug(
-                    f"google_trends after load = {list(self.googleTrendsShelf.items())}"
-                )
 
-            self.bingSearch()
+            # Perform a search in the Bing tab
+            self.webdriver.switch_to.window(search_tab)
+            self.bingSearch(rewards_tab)
+
+            # Remove used term from Google Trends shelf
             del self.googleTrendsShelf[list(self.googleTrendsShelf.keys())[0]]
             sleep(randint(10, 15))
 
-        logging.info(
-            f"[BING] Finished {self.browser.browserType.capitalize()} Edge Bing searches !"
-        )
+        logging.info(f"Finished {self.browser.browserType.capitalize()} Bing searches.")
 
-    def bingSearch(self) -> None:
-        # Function to perform a single Bing search
+    def bingSearch(self, rewards_tab) -> None:
         pointsBefore = self.browser.utils.getAccountPoints()
 
         rootTerm = list(self.googleTrendsShelf.keys())[0]
         terms = self.getRelatedTerms(rootTerm)
-        logging.debug(f"terms={terms}")
+        logging.info(f"Using root term: {rootTerm}")
         termsCycle: cycle[str] = cycle(terms)
-        baseDelay = Searches.baseDelay
-        logging.debug(f"rootTerm={rootTerm}")
 
-        # todo If first 3 searches of day, don't retry since points register differently, will be a bit quicker
+        baseDelay = Searches.baseDelay
+
         for i in range(self.maxRetries + 1):
             if i != 0:
                 sleepTime: float
@@ -163,31 +162,41 @@ class Searches:
                 else:
                     raise AssertionError
                 sleepTime += baseDelay * random()  # Add jitter
-                logging.debug(
-                    f"[BING] Search attempt not counted {i}/{Searches.maxRetries}, sleeping {sleepTime}"
-                    f" seconds..."
+                logging.warning(
+                    f"Retry {i}/{self.maxRetries}. Sleeping for {sleepTime:.2f} seconds..."
                 )
                 sleep(sleepTime)
 
-            searchbar = self.browser.utils.waitUntilClickable(
-                By.ID, "sb_form_q", timeToWait=40
-            )
+            try:
+                # Ensure the Bing search page is active or on a search result page
+                if not self.webdriver.current_url.startswith("https://www.bing.com"):
+                    logging.warning("[BING] Current tab is not Bing. Redirecting to Bing search page.")
+                    self.webdriver.get("https://www.bing.com")
+
+                searchbar = self.browser.utils.waitUntilClickable(
+                    By.ID, "sb_form_q", timeToWait=60
+                )
+            except TimeoutException:
+                logging.error("[BING] Search bar not found or clickable. Retrying...")
+                continue
+
             searchbar.clear()
             term = next(termsCycle)
-            logging.debug(f"term={term}")
+            logging.info(f"Searching for term: {term}")
             sleep(1)
             searchbar.send_keys(term)
             sleep(1)
             searchbar.submit()
 
+            sleep(5)  # Wait for points to reflect
+
+            # Switch back to rewards.bing.com tab to update points
+            self.webdriver.switch_to.window(rewards_tab)
             pointsAfter = self.browser.utils.getAccountPoints()
             if pointsBefore < pointsAfter:
-                # todo Make configurable
-                sleep(randint(300, 600))
+                logging.info(
+                    f"Points increased. Current points: {pointsAfter}"
+                )
                 return
 
-            # todo
-            # if i == (maxRetries / 2):
-            #     logging.info("[BING] " + "TIMED OUT GETTING NEW PROXY")
-            #     self.webdriver.proxy = self.browser.giveMeProxy()
         logging.error("[BING] Reached max search attempt retries")
