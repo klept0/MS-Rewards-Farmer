@@ -3,9 +3,13 @@ import logging
 from random import randint
 from time import sleep
 
-from selenium.common import TimeoutException
+from selenium.common import TimeoutException 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 from src.browser import Browser
 from src.constants import REWARDS_URL
@@ -44,14 +48,46 @@ class Activities:
         self.webdriver = browser.webdriver
 
     def openDailySetActivity(self, cardId: int):
-        # Open the Daily Set activity for the given cardId
-        cardId += 1
-        element = self.webdriver.find_element(
-            By.XPATH,
-            f'//*[@id="daily-sets"]/mee-card-group[1]/div/mee-card[{cardId}]/div/card-content/mee-rewards-daily-set-item-content/div/a',
-        )
-        self.browser.utils.click(element)
-        self.browser.utils.switchToNewTab()
+            # Count total number of cards
+            total_cards = len(self.webdriver.find_elements(By.XPATH, '//*[@id="daily-sets"]/mee-card-group[1]/div/mee-card'))
+            logging.info(f"Total number of Daily Set activity cards: {total_cards}.")
+
+            # Open the Daily Set activity for the given cardId
+            cardId += 1
+            element = self.webdriver.find_element(
+                By.XPATH,
+                f'//*[@id="daily-sets"]/mee-card-group[1]/div/mee-card[{cardId}]/div/card-content/mee-rewards-daily-set-item-content/div/a',
+            )
+
+            logging.info(f"Attempting to click on Daily Set activity card {cardId}.")
+            # Perform Ctrl + Click (Strg+Linksklick)
+            ActionChains(self.webdriver).key_down(Keys.CONTROL).click(element).key_up(Keys.CONTROL).perform()
+            logging.info(f"Clicked on Daily Set activity card {cardId}.")
+
+            # Mark activity as complete after the click
+            logging.info(f"Marking card {cardId} as complete.")
+            self.webdriver.execute_script("arguments[0].setAttribute('complete', 'true');", element)
+
+            # Wait for new tab to open
+            original_window = self.webdriver.current_window_handle
+            all_windows = self.webdriver.window_handles
+
+            # Check if a new tab was opened
+            if len(all_windows) > 1:
+                logging.info(f"New tab detected after clicking card {cardId}.")
+                # Switch to the new tab
+                self.webdriver.switch_to.window(all_windows[-1])
+                logging.info(f"Switched to the new tab for card {cardId}.")
+
+                # Close the new tab
+                self.webdriver.close()
+                logging.info(f"Closed the new tab for card {cardId}.")
+
+                # Switch back to the original tab
+                self.webdriver.switch_to.window(original_window)
+                logging.info(f"Switched back to the original tab after handling card {cardId}.")
+            else:
+                logging.info(f"No new tab was opened for card {cardId}.")
 
     def openMorePromotionsActivity(self, cardId: int):
         cardId += 1
@@ -69,8 +105,13 @@ class Activities:
 
     def completeSurvey(self):
         # Simulate completing a survey activity
-        # noinspection SpellCheckingInspection
-        self.webdriver.find_element(By.ID, f"btoption{randint(0, 1)}").click()
+        try:
+            survey_option = WebDriverWait(self.webdriver, 10).until(
+                EC.element_to_be_clickable((By.ID, f"btoption{randint(0, 1)}"))
+            )
+            survey_option.click()
+        except TimeoutException:
+            logging.error("Survey option not found or not clickable.")
 
     def completeQuiz(self):
         # Simulate completing a quiz activity
@@ -111,11 +152,8 @@ class Activities:
                         ).get_attribute("data-option")
                         == correctOption
                     ):
-                        element = self.webdriver.find_element(
-                            By.ID, f"rqAnswerOption{i}"
-                        )
+                        element = self.webdriver.find_element(By.ID, f"rqAnswerOption{i}")
                         self.browser.utils.click(element)
-
                         self.browser.utils.waitUntilQuestionRefresh()
                         break
 
@@ -149,11 +187,8 @@ class Activities:
             )
             answer1, answer1Code = self.getAnswerAndCode("rqAnswerOption0")
             answer2, answer2Code = self.getAnswerAndCode("rqAnswerOption1")
-            answerToClick: WebElement
-            if answer1Code == correctAnswerCode:
-                answerToClick = answer1
-            elif answer2Code == correctAnswerCode:
-                answerToClick = answer2
+
+            answerToClick = answer1 if answer1Code == correctAnswerCode else answer2
 
             self.browser.utils.click(answerToClick)
             sleep(randint(10, 15))
@@ -171,58 +206,59 @@ class Activities:
     def doActivity(self, activity: dict, activities: list[dict]) -> None:
         try:
             activityTitle = cleanupActivityTitle(activity["title"])
-            logging.debug(f"activityTitle={activityTitle}")
+            logging.info(f"Processing activity: {activityTitle}")
+            
             if activity["complete"] is True or activity["pointProgressMax"] == 0:
-                logging.debug("Already done, returning")
+                logging.info("Activity already completed. Skipping.")
                 return
-            if activityTitle in CONFIG.get("apprise").get("notify").get(
-                "incomplete-activity"
-            ).get("ignore"):
-                logging.debug(f"Ignoring {activityTitle}")
+            
+            if activityTitle in CONFIG.get("apprise").get("notify").get("incomplete-activity").get("ignore"):
+                logging.info(f"Ignoring activity: {activityTitle}")
                 return
-            # Open the activity for the activity
+
             cardId = activities.index(activity)
-            isDailySet = (
-                "daily_set_date" in activity["attributes"]
-                and activity["attributes"]["daily_set_date"]
-            )
+            isDailySet = "daily_set_date" in activity["attributes"] and activity["attributes"]["daily_set_date"]
+
             if isDailySet:
                 self.openDailySetActivity(cardId)
             else:
                 self.openMorePromotionsActivity(cardId)
-            with contextlib.suppress(TimeoutException):
-                searchbar = self.browser.utils.waitUntilClickable(By.ID, "sb_form_q")
-                self.browser.utils.click(searchbar)
-            if activityTitle in ACTIVITY_TITLE_TO_SEARCH:
-                searchbar.send_keys(ACTIVITY_TITLE_TO_SEARCH[activityTitle])
-                sleep(2)
-                searchbar.submit()
-            elif "poll" in activityTitle:
-                logging.info(f"[ACTIVITY] Completing poll of card {cardId}")
-                # Complete survey for a specific scenario
-                self.completeSurvey()
-            elif activity["promotionType"] == "urlreward":
-                # Complete search for URL reward
-                self.completeSearch()
-            elif activity["promotionType"] == "quiz":
-                # Complete different types of quizzes based on point progress max
-                if activity["pointProgressMax"] == 10:
-                    self.completeABC()
-                elif activity["pointProgressMax"] in [30, 40]:
-                    self.completeQuiz()
-                elif activity["pointProgressMax"] == 50:
-                    self.completeThisOrThat()
-            else:
-                # Default to completing search
-                self.completeSearch()
-        except Exception:
-            logging.error(f"[ACTIVITY] Error doing {activityTitle}", exc_info=True)
-        # todo Make configurable
-        sleep(randint(300, 600))
+
+            # Handle specific activity types
+            try:
+                if activityTitle in ACTIVITY_TITLE_TO_SEARCH:
+                    searchbar = self.browser.utils.waitUntilClickable(By.ID, "sb_form_q", timeout=10)
+                    searchbar.send_keys(ACTIVITY_TITLE_TO_SEARCH[activityTitle])
+                    sleep(2)
+                    searchbar.submit()
+                elif "poll" in activityTitle:
+                    logging.info(f"[ACTIVITY] Completing poll for card {cardId}")
+                    self.completeSurvey()
+                elif activity["promotionType"] == "urlreward":
+                    self.completeSearch()
+                elif activity["promotionType"] == "quiz":
+                    if activity["pointProgressMax"] == 10:
+                        self.completeABC()
+                    elif activity["pointProgressMax"] in [30, 40]:
+                        self.completeQuiz()
+                    elif activity["pointProgressMax"] == 50:
+                        self.completeThisOrThat()
+                else:
+                    self.completeSearch()
+            except Exception as e:
+                logging.error(f"Error while handling activity {activityTitle}: {e}")
+            
+        except Exception as e:
+            logging.error(f"[ACTIVITY] Error processing activity {activityTitle}: {e}", exc_info=True)
+        
+        # Shorten sleep time or remove it entirely
+        sleep(randint(2, 5))
+        logging.info("Resetting tabs.")
         self.browser.utils.resetTabs()
+        logging.info("Finished processing activity.")
 
     def completeActivities(self):
-        logging.info("[DAILY SET] " + "Trying to complete the Daily Set...")
+        logging.info("[DAILY SET] " + "Trying to complete the Daily Set...[acitivties.py]")
         dailySetPromotions = self.browser.utils.getDailySetPromotions()
         self.browser.utils.goToRewards()
         for activity in dailySetPromotions:
