@@ -8,7 +8,6 @@ from types import TracebackType
 from typing import Any, Type
 
 import ipapi
-import pycountry
 import seleniumwire.undetected_chromedriver as webdriver
 import undetected_chromedriver
 from ipapi.exceptions import RateLimited
@@ -222,17 +221,9 @@ class Browser:
         language = CONFIG.browser.language
 
         if not language or not country:
-            currentLocale = locale.getlocale()
-            if not language:
-                with contextlib.suppress(ValueError):
-                    language = pycountry.languages.get(
-                        alpha_2=currentLocale[0].split("_")[0]
-                    ).alpha_2
-            if not country:
-                with contextlib.suppress(ValueError):
-                    country = pycountry.countries.get(
-                        alpha_2=currentLocale[0].split("_")[1]
-                    ).alpha_2
+            locale_info = locale.getlocale()
+            if locale_info[0]:
+                language, country = locale_info[0].split("_")
 
         if not language or not country:
             try:
