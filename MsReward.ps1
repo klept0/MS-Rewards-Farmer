@@ -17,7 +17,7 @@ param (
     [switch]$help = $false,
     [switch]$update = $false,
     [switch]$noCacheDelete = $false,
-    [int]$maxRetries = 5,
+    [int]$maxRetries = 3,
     [string]$arguments = "",
     [string]$pythonPath = "",
     [string]$scriptName = "main.py",
