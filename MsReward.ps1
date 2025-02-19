@@ -5,6 +5,9 @@
 # and retry if it fails, while cleaning every error-prone elements (sessions,
 # orphan chrome instances, etc.).
 
+# Use the `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` command to allow
+# script execution in PowerShell without confirmation each time.
+
 
 # --------------------------- Script initialization ----------------------------
 # Set the script directory as the working directory and define the script

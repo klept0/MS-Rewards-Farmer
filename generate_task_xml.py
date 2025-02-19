@@ -85,7 +85,7 @@ xml_content = f"""<?xml version="1.0" encoding="UTF-16"?>
   <Actions Context="Author">
     <Exec>
       <Command>%windir%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe</Command>
-      <Arguments>-File "{script_path}"</Arguments>
+      <Arguments>-File "{script_path}" -ExecutionPolicy Bypass</Arguments>
       <WorkingDirectory>{script_dir}</WorkingDirectory>
     </Exec>
   </Actions>
