@@ -12,7 +12,7 @@
 
 param (
     [switch]$help = $false,
-    [switch]$skipUpdate = $false,
+    [switch]$update = $false,
     [switch]$noCacheDelete = $false,
     [int]$maxRetries = 5,
     [string]$arguments = "",
@@ -29,11 +29,11 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 Set-Location $scriptDir
 
 if ($help) {
-    Write-Host "Usage: .\MS_reward.ps1 [-help] [-skipUpdate] [-maxRetries <int>] [-arguments <string>] [-pythonExecutablePath <string>] [-scriptName <string>] [-cacheFolder <string>] [-logColor <string>]"
+    Write-Host "Usage: .\MS_reward.ps1 [-help] [-update] [-maxRetries <int>] [-arguments <string>] [-pythonExecutablePath <string>] [-scriptName <string>] [-cacheFolder <string>] [-logColor <string>]"
     Write-Host ""
     Write-Host "Options:"
     Write-Host "  -help                 Display this help message."
-    Write-Host "  -skipUpdate           Skip the script update."
+    Write-Host "  -update               Update the script if a new version is available."
     Write-Host "  -noCacheDelete        Do not delete the cache folder if the script fails."
     Write-Host "  -maxRetries <int>     Maximum number of retries if the script fails (default: 5)."
     Write-Host "  -arguments <string>   Arguments to pass to the main script."
@@ -51,7 +51,7 @@ if ($help) {
 
 $updated = $false
 
-if ((-not $skipUpdate) -and (Test-Path .git) -and (Get-Command git -ErrorAction SilentlyContinue)) {
+if ($update -and (Test-Path .git) -and (Get-Command git -ErrorAction SilentlyContinue)) {
     $gitOutput = & git pull --ff-only
     if ($LastExitCode -eq 0) {
         if ($gitOutput -match "Already up to date.") {
