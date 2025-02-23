@@ -14,15 +14,14 @@
 # parameters
 
 param (
-    [switch]$help = $false,
-    [switch]$update = $false,
-    [switch]$noCacheDelete = $false,
-    [int]$maxRetries = 3,
-    [string]$arguments = "",
-    [string]$pythonPath = "",
-    [string]$scriptName = "main.py",
-    [string]$cacheFolder = ".\sessions",
-    [string]$logColor = "Yellow"
+    [Alias('h')][switch]$help = $false,
+    [Alias('u')][switch]$update = $false,
+    [Alias('d')][switch]$noCacheDelete = $false,
+    [Alias('r', 'retries')][int]$maxRetries = 3,
+    [Alias('a', 'args')][string]$arguments = "",
+    [Alias('p', 'python')][string]$pythonPath = "",
+    [Alias('s', 'script')][string]$scriptName = "main.py",
+    [Alias('c', 'cache')][string]$cacheFolder = ".\sessions"
 )
 
 $name = "MS Rewards Farmer"
@@ -32,18 +31,25 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 Set-Location $scriptDir
 
 if ($help) {
-    Write-Host "Usage: .\MS_reward.ps1 [-help] [-update] [-maxRetries <int>] [-arguments <string>] [-pythonExecutablePath <string>] [-scriptName <string>] [-cacheFolder <string>] [-logColor <string>]"
+    Write-Host "Usage: .\MsReward.ps1 [-h] [-u] [-d] [-r <int>] [-a <string>] [-p <string>] [-s <string>] [-c <string>]"
     Write-Host ""
     Write-Host "Options:"
-    Write-Host "  -help                 Display this help message."
-    Write-Host "  -update               Update the script if a new version is available."
-    Write-Host "  -noCacheDelete        Do not delete the cache folder if the script fails."
-    Write-Host "  -maxRetries <int>     Maximum number of retries if the script fails (default: 5)."
-    Write-Host "  -arguments <string>   Arguments to pass to the main script."
-    Write-Host "  -pythonPath <string>  Path to the Python executable."
-    Write-Host "  -scriptName <string>  Name of the main script."
-    Write-Host "  -cacheFolder <string> Folder to store the sessions."
-    Write-Host "  -logColor <string>    Color of the log messages (default: Yellow)."
+    Write-Host "  -h, -help"
+    Write-Host "      Display this help message."
+    Write-Host "  -u, -update"
+    Write-Host "      Update the script if a new version is available."
+    Write-Host "  -d, -noCacheDelete"
+    Write-Host "      Do not delete the cache folder if the script fails."
+    Write-Host "  -r <int>, -retries <int>, -maxRetries <int>"
+    Write-Host "      Maximum number of retries if the script fails (default: 3)."
+    Write-Host "  -a <string>, -args <string>, -arguments <string>"
+    Write-Host "      Arguments to pass to the main script (default: none)."
+    Write-Host "  -p <string>, -python <string>, -pythonPath <string>"
+    Write-Host "      Path to the Python executable (default: detected)."
+    Write-Host "  -s <string>, -script <string>, -scriptName <string>"
+    Write-Host "      Name of the main script (default: main.py)."
+    Write-Host "  -c <string>, -cache <string>, -cacheFolder <string>"
+    Write-Host "      Folder to store the sessions (default: .\sessions)."
     exit 0
 }
 
@@ -58,13 +64,13 @@ if ($update -and (Test-Path .git) -and (Get-Command git -ErrorAction SilentlyCon
     $gitOutput = & git pull --ff-only
     if ($LastExitCode -eq 0) {
         if ($gitOutput -match "Already up to date.") {
-            Write-Host "> $name is already up-to-date" -ForegroundColor $logColor
+            Write-Host "> $name is already up-to-date" -ForegroundColor "Green"
         } else {
             $updated = $true
-            Write-Host "> $name updated successfully" -ForegroundColor $logColor
+            Write-Host "> $name updated successfully" -ForegroundColor "Green"
         }
     } else {
-        Write-Host "> Cannot automatically update $name - please update it manually." -ForegroundColor $logColor
+        Write-Host "> Cannot automatically update $name - please update it manually." -ForegroundColor "Green"
     }
 }
 
@@ -92,11 +98,11 @@ if (-not $pythonPath) {
 
 # If no Python executable was found, exit with an error
 if (-not $pythonPath) {
-    Write-Host "> Python executable not found. Please install Python." -ForegroundColor $logColor
+    Write-Host "> Python executable not found. Please install Python." -ForegroundColor "Green"
     exit 1
 }
 
-Write-Host "> Python executable found at $pythonPath" -ForegroundColor $logColor
+Write-Host "> Python executable found at $pythonPath" -ForegroundColor "Green"
 
 # ------------------------- Python dependencies update -------------------------
 # Try to update the Python dependencies if the script was updated
@@ -104,9 +110,9 @@ Write-Host "> Python executable found at $pythonPath" -ForegroundColor $logColor
 if ($updated) {
     & $pythonPath -m pip install -r requirements.txt --upgrade
     if ($LastExitCode -eq 0) {
-        Write-Host "> Python dependencies updated successfully" -ForegroundColor $logColor
+        Write-Host "> Python dependencies updated successfully" -ForegroundColor "Green"
     } else {
-        Write-Host "> Cannot update Python dependencies - please update them manually." -ForegroundColor $logColor
+        Write-Host "> Cannot update Python dependencies - please update them manually." -ForegroundColor "Green"
     }
 }
 
@@ -123,10 +129,10 @@ function Invoke-Farmer {
             & $pythonPath $scriptName
         }
         if ($LastExitCode -eq 0) {
-            Write-Host "> $name completed (Attempt $i/$maxRetries)." -ForegroundColor $logColor
+            Write-Host "> $name completed (Attempt $i/$maxRetries)." -ForegroundColor "Green"
             exit 0
         }
-        Write-Host "> $name failed (Attempt $i/$maxRetries) with exit code $LastExitCode." -ForegroundColor $logColor
+        Write-Host "> $name failed (Attempt $i/$maxRetries) with exit code $LastExitCode." -ForegroundColor "Green"
         Stop-Process -Name "undetected_chromedriver" -ErrorAction SilentlyContinue
         Get-Process -Name "chrome" -ErrorAction SilentlyContinue | Where-Object { $_.StartTime -gt $startTime } | Stop-Process -ErrorAction SilentlyContinue
     }
@@ -135,7 +141,7 @@ function Invoke-Farmer {
 Invoke-Farmer
 
 if (-not $noCacheDelete) {
-    Write-Host "> All $name runs failed ($maxRetries/$maxRetries). Removing cache and re-trying..." -ForegroundColor $logColor
+    Write-Host "> All $name runs failed ($maxRetries/$maxRetries). Removing cache and re-trying..." -ForegroundColor "Green"
 
     if (Test-Path "$cacheFolder") {
         Remove-Item -Recurse -Force "$cacheFolder" -ErrorAction SilentlyContinue
@@ -144,6 +150,6 @@ if (-not $noCacheDelete) {
     Invoke-Farmer
 }
 
-Write-Host "> All $name runs failed ($maxRetries/$maxRetries). Exiting with error." -ForegroundColor $logColor
+Write-Host "> All $name runs failed ($maxRetries/$maxRetries). Exiting with error." -ForegroundColor "Green"
 
 exit 1
