@@ -170,8 +170,8 @@ DEFAULT_CONFIG: Config = Config(
             'urls': []
         },
         'browser': {
-            'geolocation': 'US',
-            'language': 'en',
+            'geolocation': None,
+            'language': None,
             'visible': False,
             'proxy': None
         },

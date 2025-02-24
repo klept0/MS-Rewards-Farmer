@@ -8,7 +8,6 @@ from types import TracebackType
 from typing import Any, Type
 
 import ipapi
-import pycountry
 import seleniumwire.undetected_chromedriver as webdriver
 import undetected_chromedriver
 from ipapi.exceptions import RateLimited
@@ -36,7 +35,7 @@ class Browser:
         self.email = account.email
         self.password = account.password
         self.totp = account.get('totp')
-        self.localeLang, self.localeGeo = self.getLanguageCountry(CONFIG.browser.language, CONFIG.browser.geolocation)
+        self.localeLang, self.localeGeo = self.getLanguageCountry()
         self.proxy = CONFIG.browser.proxy
         if not self.proxy and account.get('proxy'):
             self.proxy = account.proxy
@@ -217,25 +216,14 @@ class Browser:
         return sessionsDir
 
     @staticmethod
-    def getLanguageCountry(language: str, country: str) -> tuple[str, str]:
-        if not country:
-            country = CONFIG.browser.geolocation
-
-        if not language:
-            country = CONFIG.browser.language
+    def getLanguageCountry() -> tuple[str, str]:
+        country = CONFIG.browser.geolocation
+        language = CONFIG.browser.language
 
         if not language or not country:
-            currentLocale = locale.getlocale()
-            if not language:
-                with contextlib.suppress(ValueError):
-                    language = pycountry.languages.get(
-                        alpha_2=currentLocale[0].split("_")[0]
-                    ).alpha_2
-            if not country:
-                with contextlib.suppress(ValueError):
-                    country = pycountry.countries.get(
-                        alpha_2=currentLocale[0].split("_")[1]
-                    ).alpha_2
+            locale_info = locale.getlocale()
+            if locale_info[0]:
+                language, country = locale_info[0].split("_")
 
         if not language or not country:
             try:
