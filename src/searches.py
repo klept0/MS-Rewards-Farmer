@@ -56,33 +56,83 @@ class Searches:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.googleTrendsShelf.__exit__(None, None, None)
 
-    def getGoogleTrends(self, wordsCount: int) -> list[str]:
-        # Function to retrieve Google Trends search terms
-        searchTerms: list[str] = []
-        i = 0
+    def getGoogleTrends(self, words_count: int) -> list[str]:
+        """
+        Retrieves Google Trends search terms via the new API (last 48 hours).
+        """
+        logging.debug("Starting Google Trends fetch (last 48 hours)...")
+        search_terms: list[str] = []
         session = makeRequestsSession()
-        while len(searchTerms) < wordsCount:
-            i += 1
-            # Fetching daily trends from Google Trends API
-            r = session.get(
-                f"https://trends.google.com/trends/api/dailytrends?hl={self.browser.localeLang}"
-                f'&ed={(date.today() - timedelta(days=i)).strftime("%Y%m%d")}&geo={self.browser.localeGeo}&ns=15'
-            )
-            assert (
-                r.status_code == requests.codes.ok
-            ), "Adjust retry config in src.utils.Utils.makeRequestsSession"
-            trends = json.loads(r.text[6:])
-            for topic in trends["default"]["trendingSearchesDays"][0][
-                "trendingSearches"
-            ]:
-                searchTerms.append(topic["title"]["query"].lower())
-                searchTerms.extend(
-                    relatedTopic["query"].lower()
-                    for relatedTopic in topic["relatedQueries"]
-                )
-            searchTerms = list(set(searchTerms))
-        del searchTerms[wordsCount : (len(searchTerms) + 1)]
-        return searchTerms
+        
+        url = "https://trends.google.com/_/TrendsUi/data/batchexecute"
+        payload = f'f.req=[[[i0OFE,"[null, null, \\"{self.browser.localeGeo}\\", 0, null, 48]"]]]'
+        headers = {"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"}
+        
+        logging.debug(f"Sending POST request to {url}")
+        try:
+            response = session.post(url, headers=headers, data=payload)
+            response.raise_for_status()
+            logging.debug("Response received from Google Trends API")
+        except requests.RequestException as e:
+            logging.error(f"Error fetching Google Trends: {e}")
+            return []
+
+        trends_data = self.extract_json_from_response(response.text)
+        if not trends_data:
+            logging.error("Failed to extract JSON from Google Trends response")
+            return []
+
+        # Map trends data: each element has a topic and related queries.
+        mapped_trends = []
+        for item in trends_data:
+            try:
+                topic = item[0]
+                related = item[9][1:] if len(item) > 9 and item[9] is not None else []
+                mapped_trends.append((topic, related))
+            except Exception as e:
+                logging.warning(f"Error processing an item: {e}")
+                continue
+
+        logging.debug(f"Processed {len(mapped_trends)} trend entries")
+
+        for topic, related in mapped_trends:
+            try:
+                search_terms.append(topic.lower())
+                for term in related:
+                    search_terms.append(term.lower())
+            except Exception as e:
+                logging.warning(f"Error adding trend terms: {e}")
+
+        # Remove duplicates
+        search_terms = list(set(search_terms))
+        logging.debug(f"Found {len(search_terms)} unique search terms")
+
+        if words_count < len(search_terms):
+            words_count *=2
+            logging.debug(f"Limiting search terms to {words_count} items")
+            search_terms = search_terms[:words_count]
+
+        logging.debug("Google Trends fetch complete")
+        return search_terms
+
+    def extract_json_from_response(self, text: str):
+        """
+        Extracts the nested JSON object from the API response.
+        """
+        logging.debug("Extracting JSON from API response")
+        for line in text.splitlines():
+            trimmed = line.strip()
+            if trimmed.startswith('[') and trimmed.endswith(']'):
+                try:
+                    intermediate = json.loads(trimmed)
+                    data = json.loads(intermediate[0][2])
+                    logging.debug("JSON extraction successful")
+                    return data[1]
+                except Exception as e:
+                    logging.warning(f"Error parsing JSON: {e}")
+                    continue
+        logging.error("No valid JSON found in response")
+        return None
 
     def getRelatedTerms(self, term: str) -> list[str]:
         # Function to retrieve related terms from Bing API
