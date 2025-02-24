@@ -81,37 +81,29 @@ class Searches:
         if not trends_data:
             logging.error("Failed to extract JSON from Google Trends response")
             return []
-
-        # Map trends data: each element has a topic and related queries.
-        mapped_trends = []
+    
+        logging.debug("JSON successfully extracted. Processing root terms...")
+    
+        # Process only the first element in each item
+        root_terms = []
         for item in trends_data:
             try:
                 topic = item[0]
-                related = item[9][1:] if len(item) > 9 and item[9] is not None else []
-                mapped_trends.append((topic, related))
+                root_terms.append(topic)
             except Exception as e:
                 logging.warning(f"Error processing an item: {e}")
                 continue
-
-        logging.debug(f"Processed {len(mapped_trends)} trend entries")
-
-        for topic, related in mapped_trends:
-            try:
-                search_terms.append(topic.lower())
-                for term in related:
-                    search_terms.append(term.lower())
-            except Exception as e:
-                logging.warning(f"Error adding trend terms: {e}")
-
-        # Remove duplicates
-        search_terms = list(set(search_terms))
+    
+        logging.debug(f"Extracted {len(root_terms)} root trend entries")
+    
+        # Convert to lowercase and remove duplicates
+        search_terms = list(set(term.lower() for term in root_terms))
         logging.debug(f"Found {len(search_terms)} unique search terms")
-
+    
         if words_count < len(search_terms):
-            words_count *=2
             logging.debug(f"Limiting search terms to {words_count} items")
             search_terms = search_terms[:words_count]
-
+    
         logging.debug("Google Trends fetch complete")
         return search_terms
 
