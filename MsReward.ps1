@@ -20,14 +20,23 @@ param (
     [Alias('r', 'retries')][int]$maxRetries = 3,
     [Alias('a', 'args')][string]$arguments = "",
     [Alias('p', 'python')][string]$pythonPath = "",
-    [Alias('s', 'script')][string]$scriptName = "main.py",
+    [Alias('s', 'script')][string]$scriptDir = "",
     [Alias('c', 'cache')][string]$cacheFolder = ".\sessions"
 )
 
 $name = "MS Rewards Farmer"
 $startTime = Get-Date
 
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+if ($scriptDir) {
+    if (-not (Test-Path $scriptDir)) {
+        Write-Host "> Script directory not found at $scriptDir. Please provide a valid path." -ForegroundColor "Green"
+        exit 1
+    }
+} else {
+    $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+}
+
+Write-Host "> Entering $scriptDir" -ForegroundColor "Green"
 Set-Location $scriptDir
 
 if ($help) {
@@ -46,8 +55,8 @@ if ($help) {
     Write-Host "      Arguments to pass to the main script (default: none)."
     Write-Host "  -p <string>, -python <string>, -pythonPath <string>"
     Write-Host "      Path to the Python executable (default: detected)."
-    Write-Host "  -s <string>, -script <string>, -scriptName <string>"
-    Write-Host "      Name of the main script (default: main.py)."
+    Write-Host "  -s <string>, -script <string>, -scriptDir <string>"
+    Write-Host "      Path to the main script directory (default: current directory)."
     Write-Host "  -c <string>, -cache <string>, -cacheFolder <string>"
     Write-Host "      Folder to store the sessions (default: .\sessions)."
     exit 0
@@ -78,6 +87,12 @@ if ($update -and (Test-Path .git) -and (Get-Command git -ErrorAction SilentlyCon
 # ----------------------- Python installation detection ------------------------
 # Try to detect the Python installation or virtual environments
 
+# If the python path is provided, check if it is a valid Python executable
+if ($pythonPath -and -not (Test-Path $pythonPath)) {
+    Write-Host "> Python executable not found at $pythonPath. Please provide a valid path." -ForegroundColor "Green"
+    exit 1
+}
+
 # If no virtual environment Python executable was provided, try to find a
 # virtual environment Python executable
 if (-not $pythonPath) {
@@ -102,7 +117,7 @@ if (-not $pythonPath) {
     exit 1
 }
 
-Write-Host "> Python executable found at $pythonPath" -ForegroundColor "Green"
+Write-Host "> Using Python executable at $pythonPath" -ForegroundColor "Green"
 
 # ------------------------- Python dependencies update -------------------------
 # Try to update the Python dependencies if the script was updated
@@ -124,9 +139,9 @@ if ($updated) {
 function Invoke-Farmer {
     for ($i = 1; $i -le $maxRetries; $i++) {
         if ($arguments) {
-            & $pythonPath $scriptName $arguments
+            & $pythonPath "main.py" $arguments
         } else {
-            & $pythonPath $scriptName
+            & $pythonPath "main.py"
         }
         if ($LastExitCode -eq 0) {
             Write-Host "> $name completed (Attempt $i/$maxRetries)." -ForegroundColor "Green"
