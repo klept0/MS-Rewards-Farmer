@@ -32,8 +32,9 @@
 ## Installation
 
 1. Install requirements with the following command :
-
-   `pip install -r requirements.txt`
+   ```sh
+   pip install -r requirements.txt
+   ```
 
    Upgrade all required with the following command:
    `pip install --upgrade -r requirements.txt`
@@ -47,7 +48,7 @@
    and reboot your computer
 
 4. Run the script with the following arguments:
-   ```
+   ```sh
    python main.py -C
    ```
 
@@ -64,8 +65,14 @@
    the "apprise.urls" field is not mandatory, you can remove it if you don't want to get notifications.
 
 6. Run the script:
+   ```sh
+   python main.py
+   ```
 
-   `python main.py`
+   (Windows Only) You can also run the script wrapper that will detect your python installation
+   and re-run the script if it crashes using `.\MsReward.ps1` (`.\MsReward.ps1 -help` for more
+   information). To allow script execution without confirmation, use the following command:
+   `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser`.
 
 7. (Windows Only) You can set up automatic execution by generating a Task Scheduler XML file.
 
