@@ -89,6 +89,12 @@
 All the variable listed here can be added to you `config.yaml` configuration file, and the values represented here show
 the default ones, if not said otherwise.
 
+> [!CAUTION]
+> Please don't use this as your configuration. It's an example to show configuration possibilities,
+> not the best configuration for you. Doing so will only prevent default values from being used,
+> and it'll result in preventing updates (such as ignored activities).
+> You should only add a variable to your configuration file if you want to change it.
+
 ```yaml
 # config.yaml
 apprise: # 'apprise' is the name of the service used for notifications https://github.com/caronc/apprise
