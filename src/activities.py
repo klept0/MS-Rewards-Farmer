@@ -149,6 +149,9 @@ class Activities:
             if activity["complete"] is True or activity["pointProgressMax"] == 0:
                 logging.debug("Already done, returning")
                 return
+            if "is_unlocked" in activity["attributes"] and activity["attributes"]["is_unlocked"] == "False":
+                logging.debug("Activity locked, returning")
+                return
             if activityTitle in CONFIG.activities.ignore:
                 logging.debug(f"Ignoring {activityTitle}")
                 return
