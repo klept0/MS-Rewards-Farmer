@@ -213,24 +213,21 @@ class Activities:
         # todo Send one email for all accounts?
         # fixme This is falsely considering some activities incomplete when complete
         if CONFIG.get('apprise.notify.incomplete-activity'):
-            incompleteActivities: dict[str, tuple[str, str, str]] = {}
+            incompleteActivities: list[str] = []
             for activity in (
                 self.browser.utils.getDailySetPromotions()
                 + self.browser.utils.getMorePromotions()
             ):  # Have to refresh
                 if activity["pointProgress"] < activity["pointProgressMax"]:
-                    incompleteActivities[cleanupActivityTitle(activity["title"])] = (
-                        activity["promotionType"],
-                        activity["pointProgress"],
-                        activity["pointProgressMax"],
-                    )
+                    incompleteActivities.append(cleanupActivityTitle(activity["title"]))
             for incompleteActivityToIgnore in CONFIG.activities.ignore:
-                incompleteActivities.pop(incompleteActivityToIgnore, None)
+                if incompleteActivityToIgnore in incompleteActivities:
+                    incompleteActivities.remove(incompleteActivityToIgnore)
             if incompleteActivities:
                 logging.info(f"incompleteActivities: {incompleteActivities}")
                 sendNotification(
                     f"We found some incomplete activities for {self.browser.email}",
-                    '"' + '", "'.join(incompleteActivities.keys()) + '"\n' + REWARDS_URL,
+                    '"' + '", "'.join(incompleteActivities) + '"\n' + REWARDS_URL,
                 )
 
 
