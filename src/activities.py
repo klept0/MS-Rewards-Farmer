@@ -230,7 +230,7 @@ class Activities:
                 logging.info(f"incompleteActivities: {incompleteActivities}")
                 sendNotification(
                     f"We found some incomplete activities for {self.browser.email}",
-                    str(incompleteActivities) + "\n" + REWARDS_URL,
+                    '"' + '", "'.join(incompleteActivities.keys()) + '"\n' + REWARDS_URL,
                 )
 
 
