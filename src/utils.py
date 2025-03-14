@@ -31,6 +31,7 @@ from urllib3 import Retry
 
 from .constants import REWARDS_URL, SEARCH_URL
 
+
 class Config(dict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -58,7 +59,6 @@ class Config(dict):
             new[key] = other[key]
         return new
 
-
     def __getattribute__(self, item):
         if item in self:
             return self[item]
@@ -71,9 +71,8 @@ class Config(dict):
             value = self.configifyList(value)
         self[key] = value
 
-
     def __getitem__(self, item):
-        if type(item) is not str or not '.' in item:
+        if type(item) is not str or not "." in item:
             return super().__getitem__(item)
         item: str
         items = item.split(".")
@@ -87,7 +86,7 @@ class Config(dict):
             value = self.__class__(value)
         if type(value) is list:
             value = self.configifyList(value)
-        if type(key) is not str or not '.' in key:
+        if type(key) is not str or not "." in key:
             return super().__setitem__(key, value)
         item: str
         items = key.split(".")
@@ -105,7 +104,6 @@ class Config(dict):
             if not yamlContents:
                 return cls()
             return cls(yamlContents)
-
 
     @classmethod
     def configifyList(cls, listToConvert: list) -> list:
@@ -133,9 +131,8 @@ class Config(dict):
             new[index] = item
         return new
 
-
     def get(self, key, default=None):
-        if type(key) is not str or not '.' in key:
+        if type(key) is not str or not "." in key:
             return super().get(key, default)
         item: str
         keys = key.split(".")
@@ -159,69 +156,60 @@ class Config(dict):
 
 DEFAULT_CONFIG: Config = Config(
     {
-        'apprise': {
-            'enabled': True,
-            'notify': {
-                'incomplete-activity': True,
-                'uncaught-exception': True,
-                'login-code': True
+        "apprise": {
+            "enabled": True,
+            "notify": {
+                "incomplete-activity": True,
+                "uncaught-exception": True,
+                "login-code": True,
             },
-            'summary': 'ON_ERROR',
-            'urls': []
+            "summary": "ON_ERROR",
+            "urls": [],
         },
-        'browser': {
-            'geolocation': None,
-            'language': None,
-            'visible': False,
-            'proxy': None
+        "browser": {
+            "geolocation": None,
+            "language": None,
+            "visible": False,
+            "proxy": None,
         },
-        'activities': {
-            'ignore': [
-                'Get 50 entries plus 1000 points!',
-                "Safeguard your family's info"
+        "activities": {
+            "ignore": [
+                "Get 50 entries plus 1000 points!",
+                "Safeguard your family's info",
             ],
-            'search': {
-                'Black Friday shopping': 'black friday deals',
-                'Discover open job roles': 'jobs at microsoft',
-                'Expand your vocabulary': 'define demure',
-                'Find places to stay': 'hotels rome italy',
-                'Find somewhere new to explore': 'directions to new york',
-                'Gaming time': 'vampire survivors video game',
-                'Get your shopping done faster': 'new iphone',
-                'Houses near you': 'apartments manhattan',
-                "How's the economy?": 'sp 500',
-                'Learn to cook a new recipe': 'how cook pierogi',
-                "Let's watch that movie again!": 'aliens movie',
-                'Plan a quick getaway': 'flights nyc to paris',
-                'Prepare for the weather': 'weather tomorrow',
-                'Quickly convert your money': 'convert 374 usd to yen',
-                'Search the lyrics of a song': 'black sabbath supernaut lyrics',
-                'Stay on top of the elections': 'election news latest',
-                'Too tired to cook tonight?': 'Pizza Hut near me',
-                'Translate anything': 'translate pencil sharpener to spanish',
-                'What time is it?': 'china time',
-                "What's for Thanksgiving dinner?": 'pumpkin pie recipe',
-                'Who won?': 'braves score',
-                'You can track your package': 'usps tracking'
-            }
+            "search": {
+                "Black Friday shopping": "black friday deals",
+                "Discover open job roles": "jobs at microsoft",
+                "Expand your vocabulary": "define demure",
+                "Find places to stay": "hotels rome italy",
+                "Find somewhere new to explore": "directions to new york",
+                "Gaming time": "vampire survivors video game",
+                "Get your shopping done faster": "new iphone",
+                "Houses near you": "apartments manhattan",
+                "How's the economy?": "sp 500",
+                "Learn to cook a new recipe": "how cook pierogi",
+                "Let's watch that movie again!": "aliens movie",
+                "Plan a quick getaway": "flights nyc to paris",
+                "Prepare for the weather": "weather tomorrow",
+                "Quickly convert your money": "convert 374 usd to yen",
+                "Search the lyrics of a song": "black sabbath supernaut lyrics",
+                "Stay on top of the elections": "election news latest",
+                "Too tired to cook tonight?": "Pizza Hut near me",
+                "Translate anything": "translate pencil sharpener to spanish",
+                "What time is it?": "china time",
+                "What's for Thanksgiving dinner?": "pumpkin pie recipe",
+                "Who won?": "braves score",
+                "You can track your package": "usps tracking",
+            },
         },
-        'logging': {
-            'format': '%(asctime)s [%(levelname)s] %(message)s',
-            'level': 'INFO'
+        "logging": {
+            "format": "%(asctime)s [%(levelname)s] %(message)s",
+            "level": "INFO",
         },
-        'retries': {
-            'base-delay-in-seconds': 120,
-            'max': 4,
-            'strategy': 'EXPONENTIAL'
-        },
-        'cooldown': {
-            'min': 300,
-            'max': 600
-        },
-        'search': {
-            'type': 'both'
-        },
-        'accounts': []
+        "retries": {"base-delay-in-seconds": 120, "max": 4, "strategy": "EXPONENTIAL"},
+        "cooldown": {"min": 300, "max": 600},
+        "search": {"type": "both"},
+        "accounts": [],
     }
 )
 
@@ -397,7 +385,7 @@ def argumentParser() -> Namespace:
     parser = ArgumentParser(
         description="A simple bot that uses Selenium to farm M$ Rewards in Python",
         epilog="At least one account should be specified, either using command line arguments or a configuration file."
-               "\nAll specified arguments will override the configuration file values."
+        "\nAll specified arguments will override the configuration file values.",
     )
     parser.add_argument(
         "-c",
@@ -424,7 +412,7 @@ def argumentParser() -> Namespace:
         type=str,
         default=None,
         help="Language (ex: en)"
-             "\nsee https://serpapi.com/google-languages for options"
+        "\nsee https://serpapi.com/google-languages for options",
     )
     parser.add_argument(
         "-g",
@@ -432,7 +420,7 @@ def argumentParser() -> Namespace:
         type=str,
         default=None,
         help="Searching geolocation (ex: US)"
-             "\nsee https://serpapi.com/google-trends-locations for options (should be uppercase)"
+        "\nsee https://serpapi.com/google-trends-locations for options (should be uppercase)",
     )
     parser.add_argument(
         "-em",
@@ -454,12 +442,12 @@ def argumentParser() -> Namespace:
         type=str,
         default=None,
         help="Global Proxy, supports http/https/socks4/socks5 (overrides config per-account proxies)"
-             "\n`(ex: http://user:pass@host:port)`",
+        "\n`(ex: http://user:pass@host:port)`",
     )
     parser.add_argument(
         "-t",
         "--searchtype",
-        choices=['desktop', 'mobile', 'both'],
+        choices=["desktop", "mobile", "both"],
         default=None,
         help="Set to search in either desktop, mobile or both (default: both)",
     )
@@ -488,15 +476,15 @@ def commandLineArgumentsAsConfig(args: Namespace) -> Config:
         config.browser = Config()
         config.browser.visible = True
     if args.lang:
-        if not 'browser' in config:
+        if not "browser" in config:
             config.browser = Config()
         config.browser.language = args.lang
     if args.geo:
-        if not 'browser' in config:
+        if not "browser" in config:
             config.browser = Config()
         config.browser.geolocation = args.geo
     if args.proxy:
-        if not 'browser' in config:
+        if not "browser" in config:
             config.browser = Config()
         config.browser.proxy = args.proxy
     if args.disable_apprise:
@@ -504,15 +492,17 @@ def commandLineArgumentsAsConfig(args: Namespace) -> Config:
         config.apprise.enabled = False
     if args.debug:
         config.logging = Config()
-        config.logging.level = 'DEBUG'
+        config.logging.level = "DEBUG"
     if args.searchtype:
         config.search = Config()
         config.search.type = args.searchtype
     if args.email and args.password:
-        config.accounts = [Config(
-            email=args.email,
-            password=args.password,
-        )]
+        config.accounts = [
+            Config(
+                email=args.email,
+                password=args.password,
+            )
+        ]
 
     return config
 
@@ -526,16 +516,16 @@ def setupAccounts(config: Config) -> Config:
     loadedAccounts = []
     for account in config.accounts:
         if (
-                not 'email' in account
-                or not isinstance(account.email, str)
-                or not validEmail(account.email)
+            not "email" in account
+            or not isinstance(account.email, str)
+            or not validEmail(account.email)
         ):
             logging.warning(
                 f"[CREDENTIALS] Invalid email '{account.get('email', 'No email provided')}',"
                 f" skipping this account"
             )
             continue
-        if not 'password' in account or not isinstance(account['password'], str):
+        if not "password" in account or not isinstance(account["password"], str):
             logging.warning(
                 f"[CREDENTIALS] Invalid password '{account.get('password', 'No password provided')}',"
                 f" skipping this account"
@@ -558,45 +548,38 @@ def setupAccounts(config: Config) -> Config:
     config.accounts = loadedAccounts
     return config
 
+
 def createEmptyConfig(configPath: Path, config: Config) -> None:
     if configPath.is_file():
-        logging.error(
-            f"[CONFIG] A file already exists at '{configPath}'"
-        )
+        logging.error(f"[CONFIG] A file already exists at '{configPath}'")
         exit(1)
 
     emptyConfig = Config(
         {
-            'apprise': {
-                'urls': ['discord://{WebhookID}/{WebhookToken}']
-            },
-            'accounts': [
+            "apprise": {"urls": ["discord://{WebhookID}/{WebhookToken}"]},
+            "accounts": [
                 {
-                    'email': 'Your Email 1',
-                    'password': 'Your Password 1',
-                    'totp': '0123 4567 89ab cdef',
-                    'proxy': 'http://user:pass@host1:port'
+                    "email": "Your Email 1",
+                    "password": "Your Password 1",
+                    "totp": "0123 4567 89ab cdef",
+                    "proxy": "http://user:pass@host1:port",
                 },
                 {
-                    'email': 'Your Email 2',
-                    'password': 'Your Password 2',
-                    'totp': '0123 4567 89ab cdef',
-                    'proxy': 'http://user:pass@host2:port'
-                }
-            ]
+                    "email": "Your Email 2",
+                    "password": "Your Password 2",
+                    "totp": "0123 4567 89ab cdef",
+                    "proxy": "http://user:pass@host2:port",
+                },
+            ],
         }
     )
     with open(configPath, "w", encoding="utf-8") as configFile:
         yaml.dump((emptyConfig | config).toDict(), configFile)
-    logging.info(
-        f"[CONFIG] A configuration file was created at '{configPath}'"
-    )
+    logging.info(f"[CONFIG] A configuration file was created at '{configPath}'")
     exit(0)
 
 
-def loadConfig(
-    configFilename="config.yaml", defaultConfig=DEFAULT_CONFIG
-) -> Config:
+def loadConfig(configFilename="config.yaml", defaultConfig=DEFAULT_CONFIG) -> Config:
     args = argumentParser()
     if args.config:
         configFile = Path(args.config)
