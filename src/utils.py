@@ -531,9 +531,10 @@ def setupAccounts(config: Config) -> Config:
             continue
         if "password" not in account or not isinstance(account["password"], str):
             logging.warning(
-                f"[CREDENTIALS] Invalid password '{account.get('password', 'No password provided')}',"
-                f" skipping this account"
+                "[CREDENTIALS] Invalid password, skipping this account"
             )
+            continue
+        logging.info(f"[CREDENTIALS] Account loaded {account.email}")
         loadedAccounts.append(account)
 
     if not loadedAccounts:
