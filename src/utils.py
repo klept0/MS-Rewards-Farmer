@@ -480,15 +480,15 @@ def commandLineArgumentsAsConfig(args: Namespace) -> Config:
         config.browser = Config()
         config.browser.visible = True
     if args.lang:
-        if not "browser" in config:
+        if "browser" not in config:
             config.browser = Config()
         config.browser.language = args.lang
     if args.geo:
-        if not "browser" in config:
+        if "browser" not in config:
             config.browser = Config()
         config.browser.geolocation = args.geo
     if args.proxy:
-        if not "browser" in config:
+        if "browser" not in config:
             config.browser = Config()
         config.browser.proxy = args.proxy
     if args.disable_apprise:
@@ -520,7 +520,7 @@ def setupAccounts(config: Config) -> Config:
     loadedAccounts = []
     for account in config.accounts:
         if (
-            not "email" in account
+            "email" not in account
             or not isinstance(account.email, str)
             or not validEmail(account.email)
         ):
@@ -529,7 +529,7 @@ def setupAccounts(config: Config) -> Config:
                 f" skipping this account"
             )
             continue
-        if not "password" in account or not isinstance(account["password"], str):
+        if "password" not in account or not isinstance(account["password"], str):
             logging.warning(
                 f"[CREDENTIALS] Invalid password '{account.get('password', 'No password provided')}',"
                 f" skipping this account"
