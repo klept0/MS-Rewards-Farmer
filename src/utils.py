@@ -210,7 +210,7 @@ DEFAULT_CONFIG: Config = Config(
             'level': 'INFO'
         },
         'retries': {
-            'base_delay_in_seconds': 120,
+            'base-delay-in-seconds': 120,
             'max': 4,
             'strategy': 'EXPONENTIAL'
         },

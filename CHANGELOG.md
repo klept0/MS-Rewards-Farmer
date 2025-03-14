@@ -87,11 +87,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - New [config.yaml](config.yaml) options
   - `retries`
-    - `base_delay_in_seconds`: how many seconds to delay
+    - `base-delay-in-seconds`: how many seconds to delay
     - `max`: the max amount of retries to attempt
     - `strategy`: method to use when retrying, can be either:
-      - `CONSTANT`: the default; a constant `base_delay_in_seconds` between attempts
-      - `EXPONENTIAL`: an exponentially increasing `base_delay_in_seconds` between attempts
+      - `CONSTANT`: the default; a constant `base-delay-in-seconds` between attempts
+      - `EXPONENTIAL`: an exponentially increasing `base-delay-in-seconds` between attempts
   - `apprise.summary`: configures how results are summarized via Apprise, can be either:
     - `ALWAYS`: the default, as it was before, how many points were gained and goal percentage if set
     - `ON_ERROR`: only sends email if for some reason there's remaining searches
