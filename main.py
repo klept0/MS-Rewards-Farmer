@@ -110,6 +110,7 @@ def setupLogging():
             ),
             terminalHandler,
         ],
+        force=True,
     )
 
 
