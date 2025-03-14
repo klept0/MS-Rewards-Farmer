@@ -584,7 +584,7 @@ def createEmptyConfig(configPath: Path, config: Config) -> None:
     exit(0)
 
 
-def loadConfig(configFilename="config.yaml", defaultConfig=DEFAULT_CONFIG) -> Config:
+def loadConfig(configFilename="config.yaml") -> Config:
     args = argumentParser()
     if args.config:
         configFile = Path(args.config)
@@ -596,7 +596,7 @@ def loadConfig(configFilename="config.yaml", defaultConfig=DEFAULT_CONFIG) -> Co
     if args.create_config:
         createEmptyConfig(configFile, args_config)
 
-    config = defaultConfig | Config.fromYaml(configFile) | args_config
+    config = DEFAULT_CONFIG | Config.fromYaml(configFile) | args_config
     config = setupAccounts(config)
 
     return config
