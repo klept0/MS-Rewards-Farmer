@@ -1,19 +1,17 @@
 import dbm.dumb
-import json
 import logging
 import shelve
-from datetime import date, timedelta
 from enum import Enum, auto
 from itertools import cycle
 from random import random, randint, shuffle
 from time import sleep
 from typing import Final
 
-import requests
 from selenium.webdriver.common.by import By
+from trendspy import Trends
 
 from src.browser import Browser
-from src.utils import CONFIG, makeRequestsSession, getProjectRoot
+from src.utils import CONFIG, getProjectRoot
 
 
 class RetriesStrategy(Enum):
@@ -56,90 +54,6 @@ class Searches:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.googleTrendsShelf.__exit__(None, None, None)
 
-    def getGoogleTrends(self, words_count: int) -> list[str]:
-        """
-        Retrieves Google Trends search terms via the new API (last 48 hours).
-        """
-        logging.debug("Starting Google Trends fetch (last 48 hours)...")
-        search_terms: list[str] = []
-        session = makeRequestsSession()
-        
-        url = "https://trends.google.com/_/TrendsUi/data/batchexecute"
-        payload = f'f.req=[[[i0OFE,"[null, null, \\"{self.browser.localeGeo}\\", 0, null, 48]"]]]'
-        headers = {"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"}
-        
-        logging.debug(f"Sending POST request to {url}")
-        try:
-            response = session.post(url, headers=headers, data=payload)
-            response.raise_for_status()
-            logging.debug("Response received from Google Trends API")
-        except requests.RequestException as e:
-            logging.error(f"Error fetching Google Trends: {e}")
-            return []
-
-        trends_data = self.extract_json_from_response(response.text)
-        if not trends_data:
-            logging.error("Failed to extract JSON from Google Trends response")
-            return []
-    
-        logging.debug("JSON successfully extracted. Processing root terms...")
-    
-        # Process only the first element in each item
-        root_terms = []
-        for item in trends_data:
-            try:
-                topic = item[0]
-                root_terms.append(topic)
-            except Exception as e:
-                logging.warning(f"Error processing an item: {e}")
-                continue
-    
-        logging.debug(f"Extracted {len(root_terms)} root trend entries")
-    
-        # Convert to lowercase and remove duplicates
-        search_terms = list(set(term.lower() for term in root_terms))
-        logging.debug(f"Found {len(search_terms)} unique search terms")
-    
-        if words_count < len(search_terms):
-            logging.debug(f"Limiting search terms to {words_count} items")
-            search_terms = search_terms[:words_count]
-    
-        logging.debug("Google Trends fetch complete")
-        return search_terms
-
-    def extract_json_from_response(self, text: str):
-        """
-        Extracts the nested JSON object from the API response.
-        """
-        logging.debug("Extracting JSON from API response")
-        for line in text.splitlines():
-            trimmed = line.strip()
-            if trimmed.startswith('[') and trimmed.endswith(']'):
-                try:
-                    intermediate = json.loads(trimmed)
-                    data = json.loads(intermediate[0][2])
-                    logging.debug("JSON extraction successful")
-                    return data[1]
-                except Exception as e:
-                    logging.warning(f"Error parsing JSON: {e}")
-                    continue
-        logging.error("No valid JSON found in response")
-        return None
-
-    def getRelatedTerms(self, term: str) -> list[str]:
-        # Function to retrieve related terms from Bing API
-        relatedTerms: list[str] = (
-            makeRequestsSession()
-            .get(
-                f"https://api.bing.com/osjson.aspx?query={term}",
-                headers={"User-agent": self.browser.userAgent},
-            )
-            .json()[1]
-        )  # todo Wrap if failed, or assert response?
-        if not relatedTerms:
-            return [term]
-        return relatedTerms
-
     def bingSearches(self) -> None:
         # Function to perform Bing searches
         logging.info(
@@ -167,10 +81,13 @@ class Searches:
                 logging.debug(
                     f"google_trends before load = {list(self.googleTrendsShelf.items())}"
                 )
-                trends = self.getGoogleTrends(desktopAndMobileRemaining.getTotal())
+                trends = Trends()
+                trends = trends.trending_now(geo="US-GA")[
+                    : desktopAndMobileRemaining.getTotal()
+                ]
                 shuffle(trends)
                 for trend in trends:
-                    self.googleTrendsShelf[trend] = None
+                    self.googleTrendsShelf[trend.keyword] = trend
                 logging.debug(
                     f"google_trends after load = {list(self.googleTrendsShelf.items())}"
                 )
@@ -188,7 +105,7 @@ class Searches:
         pointsBefore = self.browser.utils.getAccountPoints()
 
         rootTerm = list(self.googleTrendsShelf.keys())[0]
-        terms = self.getRelatedTerms(rootTerm)
+        terms = self.googleTrendsShelf[rootTerm].trend_keywords
         logging.debug(f"terms={terms}")
         termsCycle: cycle[str] = cycle(terms)
         baseDelay = Searches.baseDelay
