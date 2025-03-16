@@ -77,12 +77,11 @@ class Searches:
                 break
 
             if desktopAndMobileRemaining.getTotal() > len(self.googleTrendsShelf):
-                # self.googleTrendsShelf.clear()  # Maybe needed?
                 logging.debug(
                     f"google_trends before load = {list(self.googleTrendsShelf.items())}"
                 )
                 trends = Trends()
-                trends = trends.trending_now(geo="US-GA")[
+                trends = trends.trending_now(geo=CONFIG.browser.geolocation)[
                     : desktopAndMobileRemaining.getTotal()
                 ]
                 shuffle(trends)
@@ -104,12 +103,12 @@ class Searches:
         # Function to perform a single Bing search
         pointsBefore = self.browser.utils.getAccountPoints()
 
-        rootTerm = list(self.googleTrendsShelf.keys())[0]
-        terms = self.googleTrendsShelf[rootTerm].trend_keywords
-        logging.debug(f"terms={terms}")
-        termsCycle: cycle[str] = cycle(terms)
+        trend = list(self.googleTrendsShelf.keys())[0]
+        trendKeywords = self.googleTrendsShelf[trend].trend_keywords
+        logging.debug(f"trendKeywords={trendKeywords}")
+        termsCycle: cycle[str] = cycle(trendKeywords)
         baseDelay = Searches.baseDelay
-        logging.debug(f"rootTerm={rootTerm}")
+        logging.debug(f"trend={trend}")
 
         # todo If first 3 searches of day, don't retry since points register differently, will be a bit quicker
         for i in range(self.maxRetries + 1):
