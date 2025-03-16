@@ -149,7 +149,10 @@ class Activities:
             if activity["complete"] is True or activity["pointProgressMax"] == 0:
                 logging.debug("Already done, returning")
                 return
-            if "is_unlocked" in activity["attributes"] and activity["attributes"]["is_unlocked"] == "False":
+            if (
+                "is_unlocked" in activity["attributes"]
+                and activity["attributes"]["is_unlocked"] == "False"
+            ):
                 logging.debug("Activity locked, returning")
                 return
             if activityTitle in CONFIG.activities.ignore:
@@ -161,7 +164,18 @@ class Activities:
                 "daily_set_date" in activity["attributes"]
                 and activity["attributes"]["daily_set_date"]
             )
-            if isDailySet:
+            isExploreOnBing = "Search on Bing" in activity["description"]
+            isPuzzle = "puzzle" in activityTitle.lower()
+            if isExploreOnBing:
+                # todo Add support for Explore on Bing activities
+                logging.info(
+                    f"Skipping {activityTitle} because it's an Explore on Bing activity, which isn't supported (yet)"
+                )
+                return
+            elif isPuzzle:
+                logging.info(f"Skipping {activityTitle} because it's not supported")
+                return
+            elif isDailySet:
                 self.openDailySetActivity(cardId)
             else:
                 self.openMorePromotionsActivity(cardId)
