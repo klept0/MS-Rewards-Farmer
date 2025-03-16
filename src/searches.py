@@ -106,7 +106,7 @@ class Searches:
         trend = list(self.googleTrendsShelf.keys())[0]
         trendKeywords = self.googleTrendsShelf[trend].trend_keywords
         logging.debug(f"trendKeywords={trendKeywords}")
-        termsCycle: cycle[str] = cycle(trendKeywords)
+        trendKeywordsCycle: cycle[str] = cycle(trendKeywords)
         baseDelay = Searches.baseDelay
         logging.debug(f"trend={trend}")
 
@@ -131,10 +131,10 @@ class Searches:
                 By.ID, "sb_form_q", timeToWait=40
             )
             searchbar.clear()
-            term = next(termsCycle)
-            logging.debug(f"term={term}")
+            trendKeyword = next(trendKeywordsCycle)
+            logging.debug(f"trendKeyword={trendKeyword}")
             sleep(1)
-            searchbar.send_keys(term)
+            searchbar.send_keys(trendKeyword)
             sleep(1)
             searchbar.submit()
 
