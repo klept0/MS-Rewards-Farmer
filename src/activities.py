@@ -184,7 +184,6 @@ class Activities:
                 sleep(2)
                 searchbar.submit()
             elif "poll" in activityTitle:
-                logging.info(f"[ACTIVITY] Completing poll of card {cardId}")
                 # Complete survey for a specific scenario
                 self.completeSurvey()
             elif activity["promotionType"] == "urlreward":
