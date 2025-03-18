@@ -84,7 +84,6 @@ class Searches:
                 trends = trends.trending_now(geo=CONFIG.browser.geolocation)[
                     : desktopAndMobileRemaining.getTotal()
                 ]
-                shuffle(trends)
                 for trend in trends:
                     self.googleTrendsShelf[trend.keyword] = trend
                 logging.debug(
