@@ -48,20 +48,27 @@ class Activities:
 
     def completeQuiz(self):
         # Simulate completing a quiz activity
-        with contextlib.suppress(TimeoutException):
+        with contextlib.suppress(
+            TimeoutException
+        ):  # Handles in case quiz was started in previous run
             startQuiz = self.browser.utils.waitUntilQuizLoads()
             self.browser.utils.click(startQuiz)
-        self.browser.utils.waitUntilVisible(By.ID, "overlayPanel", 5)
-        currentQuestionNumber: int = self.webdriver.execute_script(
-            "return _w.rewardsQuizRenderInfo.currentQuestionNumber"
-        )
         maxQuestions = self.webdriver.execute_script(
             "return _w.rewardsQuizRenderInfo.maxQuestions"
         )
         numberOfOptions = self.webdriver.execute_script(
             "return _w.rewardsQuizRenderInfo.numberOfOptions"
         )
-        for _ in range(currentQuestionNumber, maxQuestions + 1):
+        while True:
+            correctlyAnsweredQuestionCount: int = self.webdriver.execute_script(
+                "return _w.rewardsQuizRenderInfo.CorrectlyAnsweredQuestionCount"
+            )
+
+            if correctlyAnsweredQuestionCount == maxQuestions:
+                return
+
+            self.browser.utils.waitUntilQuestionRefresh()
+
             if numberOfOptions == 8:
                 answers = []
                 for i in range(numberOfOptions):
@@ -73,7 +80,6 @@ class Activities:
                 for answer in answers:
                     element = self.webdriver.find_element(By.ID, answer)
                     self.browser.utils.click(element)
-                    self.browser.utils.waitUntilQuestionRefresh()
             elif numberOfOptions in [2, 3, 4]:
                 correctOption = self.webdriver.execute_script(
                     "return _w.rewardsQuizRenderInfo.correctAnswer"
@@ -89,8 +95,6 @@ class Activities:
                             By.ID, f"rqAnswerOption{i}"
                         )
                         self.browser.utils.click(element)
-
-                        self.browser.utils.waitUntilQuestionRefresh()
                         break
 
     def completeABC(self):
@@ -111,12 +115,12 @@ class Activities:
 
     def completeThisOrThat(self):
         # Simulate completing a This or That activity
-        startQuiz = self.browser.utils.waitUntilQuizLoads()
-        self.browser.utils.click(startQuiz)
-        self.browser.utils.waitUntilVisible(
-            By.XPATH, '//*[@id="currentQuestionContainer"]/div/div[1]', 10
-        )
-        sleep(randint(10, 15))
+        with contextlib.suppress(
+            TimeoutException
+        ):  # Handles in case quiz was started in previous run
+            startQuiz = self.browser.utils.waitUntilQuizLoads()
+            self.browser.utils.click(startQuiz)
+        self.browser.utils.waitUntilQuestionRefresh()
         for _ in range(10):
             correctAnswerCode = self.webdriver.execute_script(
                 "return _w.rewardsQuizRenderInfo.correctAnswer"
