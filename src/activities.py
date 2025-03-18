@@ -168,15 +168,8 @@ class Activities:
                 "daily_set_date" in activity["attributes"]
                 and activity["attributes"]["daily_set_date"]
             )
-            isExploreOnBing = "Search on Bing" in activity["description"]
             isPuzzle = "puzzle" in activityTitle.lower()
-            if isExploreOnBing:
-                # todo Add support for Explore on Bing activities
-                logging.info(
-                    f"Skipping {activityTitle} because it's an Explore on Bing activity, which isn't supported (yet)"
-                )
-                return
-            elif isPuzzle:
+            if isPuzzle:
                 logging.info(f"Skipping {activityTitle} because it's not supported")
                 return
             elif isDailySet:
