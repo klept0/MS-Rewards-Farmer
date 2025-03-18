@@ -200,6 +200,7 @@ class Activities:
             else:
                 # Default to completing search
                 self.completeSearch()
+            logging.debug("Done")
         except Exception:
             logging.error(f"[ACTIVITY] Error doing {activityTitle}", exc_info=True)
         sleep(randint(CONFIG.cooldown.min, CONFIG.cooldown.max))
