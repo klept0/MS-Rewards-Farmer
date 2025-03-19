@@ -172,6 +172,7 @@ DEFAULT_CONFIG: Config = Config(
             "visible": False,
             "proxy": None,
         },
+        "rtfr": False,
         "activities": {
             "ignore": [
                 "Bing app search",
@@ -662,3 +663,6 @@ def makeRequestsSession(session: Session = requests.session()) -> Session:
 
 
 CONFIG = loadConfig()
+if CONFIG.rtfr:
+    print("Please read the README.md file before using this script. Exiting.")
+    exit(0)

@@ -117,6 +117,8 @@ browser:
   visible: false # set it to true to show the browser window, can be overridden with command-line arguments.
   proxy: null # set the global proxy using the 'http://user:pass@host:port' syntax.
     # Override per-account proxies. Can be overridden with command-line arguments.
+rtfr: true # If true, display the "read the readme" message at the start of the script and prevent the script
+  # from running. Default is false.
 activities:
   ignore: # list of activities to ignore, like activities that can't be completed
     - Get 50 entries plus 1000 points!
