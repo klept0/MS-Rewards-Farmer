@@ -11,7 +11,7 @@ from selenium.webdriver.common.by import By
 from trendspy import Trends
 
 from src.browser import Browser
-from src.utils import CONFIG, getProjectRoot
+from src.utils import CONFIG, getProjectRoot, cooldown
 
 
 class RetriesStrategy(Enum):
@@ -139,7 +139,7 @@ class Searches:
 
             pointsAfter = self.browser.utils.getAccountPoints()
             if pointsBefore < pointsAfter:
-                sleep(randint(CONFIG.cooldown.min, CONFIG.cooldown.max))
+                cooldown()
                 return
 
             # todo

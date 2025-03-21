@@ -185,6 +185,7 @@ DEFAULT_CONFIG: Config = Config(
                 "Black Friday shopping": "black friday deals",
                 "Discover open job roles": "jobs at microsoft",
                 "Expand your vocabulary": "define demure",
+                "Feeling symptoms?": "covid symptoms",
                 "Find places to stay": "hotels rome italy",
                 "Find somewhere new to explore": "directions to new york",
                 "Gaming time": "vampire survivors video game",
@@ -192,6 +193,7 @@ DEFAULT_CONFIG: Config = Config(
                 "Houses near you": "apartments manhattan",
                 "How's the economy?": "sp 500",
                 "Learn to cook a new recipe": "how cook pierogi",
+                "Learn a new recipe": "how cook pierogi",
                 "Let's watch that movie again!": "aliens movie",
                 "Plan a quick getaway": "flights nyc to paris",
                 "Prepare for the weather": "weather tomorrow",
@@ -199,11 +201,13 @@ DEFAULT_CONFIG: Config = Config(
                 "Search the lyrics of a song": "black sabbath supernaut lyrics",
                 "Stay on top of the elections": "election news latest",
                 "Too tired to cook tonight?": "Pizza Hut near me",
+                "Too tired to cook?": "Pizza Hut near me",
                 "Translate anything": "translate pencil sharpener to spanish",
                 "What time is it?": "china time",
                 "What's for Thanksgiving dinner?": "pumpkin pie recipe",
                 "Who won?": "braves score",
                 "You can track your package": "usps tracking",
+                "Quickly convert money": "usd to euro",
             },
         },
         "logging": {
@@ -530,9 +534,7 @@ def setupAccounts(config: Config) -> Config:
             )
             continue
         if "password" not in account or not isinstance(account["password"], str):
-            logging.warning(
-                "[CREDENTIALS] Invalid password, skipping this account"
-            )
+            logging.warning("[CREDENTIALS] Invalid password, skipping this account")
             continue
         logging.info(f"[CREDENTIALS] Account loaded {account.email}")
         loadedAccounts.append(account)
@@ -659,6 +661,12 @@ def makeRequestsSession(session: Session = requests.session()) -> Session:
         "http://", HTTPAdapter(max_retries=retry)
     )  # See https://stackoverflow.com/a/35504626/4164390 to finetune
     return session
+
+
+def cooldown() -> None:
+    cooldownTime = random.randint(CONFIG.cooldown.min, CONFIG.cooldown.max)
+    logging.info(f"[COOLDOWN] Waiting for {cooldownTime} seconds")
+    time.sleep(cooldownTime)
 
 
 CONFIG = loadConfig()

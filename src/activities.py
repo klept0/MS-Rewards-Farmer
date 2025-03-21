@@ -9,7 +9,7 @@ from selenium.webdriver.remote.webelement import WebElement
 
 from src.browser import Browser
 from src.constants import REWARDS_URL
-from src.utils import CONFIG, sendNotification, getAnswerCode
+from src.utils import CONFIG, sendNotification, getAnswerCode, cooldown
 
 
 class Activities:
@@ -33,6 +33,15 @@ class Activities:
         element = self.webdriver.find_element(
             By.CSS_SELECTOR,
             f"#more-activities > .m-card-group > .ng-scope:nth-child({cardId}) .ds-card-sec",
+        )
+        self.browser.utils.click(element)
+        self.browser.utils.switchToNewTab()
+
+    def openExploreOnBing(self, cardId: int) -> None:
+        cardId -= 10
+        element = self.webdriver.find_element(
+            By.XPATH,
+            f'//*[@id="explore-on-bing"]/mee-card-group/div/mee-card[{cardId}]',
         )
         self.browser.utils.click(element)
         self.browser.utils.switchToNewTab()
@@ -146,17 +155,14 @@ class Activities:
             getAnswerCode(answerEncodeKey, answerTitle),
         )
 
-    def doActivity(self, activity: dict, activities: list[dict]) -> None:
+    def completeActivity(self, activity: dict, activities: list[dict]) -> None:
         try:
             activityTitle = cleanupActivityTitle(activity["title"])
             logging.debug(f"activityTitle={activityTitle}")
-            if activity["complete"] is True or activity["pointProgressMax"] == 0:
+            if activity["complete"] or activity["pointProgressMax"] == 0:
                 logging.debug("Already done, returning")
                 return
-            if (
-                "is_unlocked" in activity["attributes"]
-                and activity["attributes"]["is_unlocked"] == "False"
-            ):
+            if not bool(activity["attributes"].get("is_unlocked", True)):
                 logging.debug("Activity locked, returning")
                 return
             if activityTitle in CONFIG.activities.ignore:
@@ -164,21 +170,24 @@ class Activities:
                 return
             # Open the activity for the activity
             cardId = activities.index(activity)
-            isDailySet = (
-                "daily_set_date" in activity["attributes"]
-                and activity["attributes"]["daily_set_date"]
-            )
             isPuzzle = "puzzle" in activityTitle.lower()
+            isDailySet = bool(activity["attributes"].get("daily_set_date", False))
+            isExploreOnBing = bool(
+                activity["attributes"].get("isExploreOnBingTask", False)
+            )
             if isPuzzle:
                 logging.info(f"Skipping {activityTitle} because it's not supported")
                 return
             elif isDailySet:
                 self.openDailySetActivity(cardId)
+            elif isExploreOnBing:
+                self.openExploreOnBing(cardId)
             else:
                 self.openMorePromotionsActivity(cardId)
             with contextlib.suppress(TimeoutException):
                 searchbar = self.browser.utils.waitUntilClickable(By.ID, "sb_form_q")
                 self.browser.utils.click(searchbar)
+                searchbar.clear()
             if activityTitle in CONFIG.activities.search:
                 searchbar.send_keys(CONFIG.activities.search[activityTitle])
                 sleep(2)
@@ -203,22 +212,25 @@ class Activities:
             logging.debug("Done")
         except Exception:
             logging.error(f"[ACTIVITY] Error doing {activityTitle}", exc_info=True)
-        sleep(randint(CONFIG.cooldown.min, CONFIG.cooldown.max))
-        self.browser.utils.resetTabs()
+            logging.debug(f"activity={activity}")
+            return
+        finally:
+            self.browser.utils.resetTabs()
+        cooldown()
 
     def completeActivities(self):
         logging.info("[DAILY SET] " + "Trying to complete the Daily Set...")
         dailySetPromotions = self.browser.utils.getDailySetPromotions()
         self.browser.utils.goToRewards()
         for activity in dailySetPromotions:
-            self.doActivity(activity, dailySetPromotions)
+            self.completeActivity(activity, dailySetPromotions)
         logging.info("[DAILY SET] Done")
 
         logging.info("[MORE PROMOS] " + "Trying to complete More Promotions...")
         morePromotions: list[dict] = self.browser.utils.getMorePromotions()
         self.browser.utils.goToRewards()
         for activity in morePromotions:
-            self.doActivity(activity, morePromotions)
+            self.completeActivity(activity, morePromotions)
         logging.info("[MORE PROMOS] Done")
 
         # todo Send one email for all accounts?
@@ -233,6 +245,7 @@ class Activities:
                 if (
                     activityTitle not in CONFIG.activities.ignore
                     and activity["pointProgress"] < activity["pointProgressMax"]
+                    and bool(activity["attributes"].get("is_unlocked", True))
                 ):
                     incompleteActivities.append(activityTitle)
             if incompleteActivities:
