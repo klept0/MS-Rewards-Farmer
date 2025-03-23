@@ -278,9 +278,6 @@ class Utils:
 
     def goToSearch(self) -> None:
         self.webdriver.get(SEARCH_URL)
-        # assert (
-        #     self.webdriver.current_url == SEARCH_URL
-        # ), f"{self.webdriver.current_url} {SEARCH_URL}"  # need regex: AssertionError: https://www.bing.com/?toWww=1&redig=A5B72363182B49DEBB7465AD7520FDAA https://bing.com/
 
     # Prefer getBingInfo if possible
     def getDashboardData(self) -> dict:
