@@ -3,6 +3,7 @@ import logging
 from random import randint
 from time import sleep
 
+import pyautogui
 from selenium.common import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
@@ -178,6 +179,12 @@ class Activities:
             if isPuzzle:
                 logging.info(f"Skipping {activityTitle} because it's not supported")
                 return
+            elif "Windows search" == activityTitle:
+                for search in {"what time is it", "what is the weather"}:
+                    pyautogui.press("win")
+                    sleep(10)
+                    pyautogui.write(search)
+                    pyautogui.press("enter")
             elif isDailySet:
                 self.openDailySetActivity(cardId)
             elif isExploreOnBing:

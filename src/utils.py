@@ -179,7 +179,6 @@ DEFAULT_CONFIG: Config = Config(
                 "Get 50 entries plus 1000 points!",
                 "Get 100 points with search bar",
                 "Safeguard your family's info",
-                "Windows search",
             ],
             "search": {
                 "Black Friday shopping": "black friday deals",
