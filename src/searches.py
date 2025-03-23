@@ -129,6 +129,7 @@ class Searches:
                 )
                 sleep(sleepTime)
 
+            self.browser.utils.goToSearch()
             searchbar = self.browser.utils.waitUntilClickable(
                 By.ID, "sb_form_q", timeToWait=40
             )
