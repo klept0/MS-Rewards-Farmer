@@ -109,9 +109,12 @@ class Searches:
         baseDelay = Searches.baseDelay
         logging.debug(f"trend={trend}")
 
-        # todo If first 3 searches of day, don't retry since points register differently, will be a bit quicker
         for i in range(self.maxRetries + 1):
             if i != 0:
+                if len(trendKeywords) == 1:
+                    logging.info("[BING] trendKeywords is singleton, not retrying")
+                    return
+
                 sleepTime: float
                 if Searches.retriesStrategy == Searches.retriesStrategy.EXPONENTIAL:
                     sleepTime = baseDelay * 2 ** (i - 1)
