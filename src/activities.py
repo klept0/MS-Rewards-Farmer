@@ -3,7 +3,6 @@ import logging
 from random import randint
 from time import sleep
 
-import pyautogui
 from selenium.common import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
@@ -17,35 +16,6 @@ class Activities:
     def __init__(self, browser: Browser):
         self.browser = browser
         self.webdriver = browser.webdriver
-
-    def openDailySetActivity(self, cardId: int):
-        # Open the Daily Set activity for the given cardId
-        cardId += 1
-        element = self.webdriver.find_element(
-            By.XPATH,
-            f'//*[@id="daily-sets"]/mee-card-group[1]/div/mee-card[{cardId}]/div/card-content/mee-rewards-daily-set-item-content/div/a',
-        )
-        self.browser.utils.click(element)
-        self.browser.utils.switchToNewTab()
-
-    def openMorePromotionsActivity(self, cardId: int):
-        cardId += 1
-        # Open the More Promotions activity for the given cardId
-        element = self.webdriver.find_element(
-            By.CSS_SELECTOR,
-            f"#more-activities > .m-card-group > .ng-scope:nth-child({cardId}) .ds-card-sec",
-        )
-        self.browser.utils.click(element)
-        self.browser.utils.switchToNewTab()
-
-    def openExploreOnBing(self, cardId: int) -> None:
-        cardId -= 10
-        element = self.webdriver.find_element(
-            By.XPATH,
-            f'//*[@id="explore-on-bing"]/mee-card-group/div/mee-card[{cardId}]',
-        )
-        self.browser.utils.click(element)
-        self.browser.utils.switchToNewTab()
 
     def completeSearch(self):
         # Simulate completing a search activity
@@ -156,43 +126,45 @@ class Activities:
             getAnswerCode(answerEncodeKey, answerTitle),
         )
 
-    def completeActivity(self, activity: dict, activities: list[dict]) -> None:
+    def completeActivity(self, activity: dict) -> None:
         try:
             activityTitle = cleanupActivityTitle(activity["title"])
             logging.debug(f"activityTitle={activityTitle}")
             if activity["complete"] or activity["pointProgressMax"] == 0:
                 logging.debug("Already done, returning")
                 return
-            if not bool(activity["attributes"].get("is_unlocked", True)):
+            if activity["attributes"].get("is_unlocked", "True") != "True":
+                assert (
+                    activity["attributes"].get("isExploreOnBingTask", "False") == "True"
+                )
                 logging.debug("Activity locked, returning")
                 return
             if activityTitle in CONFIG.activities.ignore:
                 logging.debug(f"Ignoring {activityTitle}")
                 return
             # Open the activity for the activity
-            cardId = activities.index(activity)
-            isPuzzle = "puzzle" in activityTitle.lower()
-            isDailySet = bool(activity["attributes"].get("daily_set_date", False))
-            isExploreOnBing = bool(
-                activity["attributes"].get("isExploreOnBingTask", False)
-            )
-            if isPuzzle:
+            if "puzzle" in activityTitle.lower():
                 logging.info(f"Skipping {activityTitle} because it's not supported")
                 return
             elif "Windows search" == activityTitle:
-                for search in {"what time is it", "what is the weather"}:
-                    pyautogui.press("win")
-                    sleep(10)
-                    pyautogui.write(search)
-                    pyautogui.press("enter")
-            elif isDailySet:
-                self.openDailySetActivity(cardId)
-            elif isExploreOnBing:
-                self.openExploreOnBing(cardId)
-            else:
-                self.openMorePromotionsActivity(cardId)
+                # for search in {"what time is it in dublin", "what is the weather"}:
+                #     pyautogui.press("win")
+                #     sleep(1)
+                #     pyautogui.write(search)
+                #     sleep(5)
+                #     pyautogui.press("enter")
+                #     sleep(5)
+                # pyautogui.hotkey("alt", "f4") # Close Edge
+                return
+            activityElement = self.browser.utils.waitUntilClickable(
+                By.XPATH, f"//*[contains(text(), '{activityTitle}')]"
+            )
+            self.browser.utils.click(activityElement)
+            self.browser.utils.switchToNewTab()
             with contextlib.suppress(TimeoutException):
-                searchbar = self.browser.utils.waitUntilClickable(By.ID, "sb_form_q")
+                searchbar = self.browser.utils.waitUntilClickable(
+                    By.ID, "sb_form_q", timeToWait=30
+                )
                 self.browser.utils.click(searchbar)
                 searchbar.clear()
             if activityTitle in CONFIG.activities.search:
@@ -230,19 +202,18 @@ class Activities:
         dailySetPromotions = self.browser.utils.getDailySetPromotions()
         self.browser.utils.goToRewards()
         for activity in dailySetPromotions:
-            self.completeActivity(activity, dailySetPromotions)
+            self.completeActivity(activity)
         logging.info("[DAILY SET] Done")
 
         logging.info("[MORE PROMOS] " + "Trying to complete More Promotions...")
         morePromotions: list[dict] = self.browser.utils.getMorePromotions()
         self.browser.utils.goToRewards()
         for activity in morePromotions:
-            self.completeActivity(activity, morePromotions)
+            self.completeActivity(activity)
         logging.info("[MORE PROMOS] Done")
 
         # todo Send one email for all accounts?
-        # fixme This is falsely considering some activities incomplete when complete
-        if CONFIG.get("apprise.notify.incomplete-activity"):
+        if CONFIG.get("apprise.notify.incomplete-activity"):  # todo Use fancy new way
             incompleteActivities: list[str] = []
             for activity in (
                 self.browser.utils.getDailySetPromotions()
@@ -252,7 +223,7 @@ class Activities:
                 if (
                     activityTitle not in CONFIG.activities.ignore
                     and activity["pointProgress"] < activity["pointProgressMax"]
-                    and bool(activity["attributes"].get("is_unlocked", True))
+                    and activity["attributes"].get("is_unlocked", "True") == "True"
                 ):
                     incompleteActivities.append(activityTitle)
             if incompleteActivities:

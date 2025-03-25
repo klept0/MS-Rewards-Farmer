@@ -185,6 +185,7 @@ DEFAULT_CONFIG: Config = Config(
                 "Discover open job roles": "jobs at microsoft",
                 "Expand your vocabulary": "define demure",
                 "Feeling symptoms?": "covid symptoms",
+                "Find deals on Bing": "65 inch tv deals",
                 "Find places to stay": "hotels rome italy",
                 "Find somewhere new to explore": "directions to new york",
                 "Gaming time": "vampire survivors video game",
@@ -282,7 +283,7 @@ class Utils:
     # Prefer getBingInfo if possible
     def getDashboardData(self) -> dict:
         self.goToRewards()
-        time.sleep(5) # fixme Avoid busy wait (if this works)
+        time.sleep(5)  # fixme Avoid busy wait (if this works)
         return self.webdriver.execute_script("return dashboard")
 
     def getDailySetPromotions(self) -> list[dict]:
@@ -353,7 +354,7 @@ class Utils:
                 By.TAG_NAME, "button"
             ).click()
 
-    def switchToNewTab(self, timeToWait: float = 30, closeTab: bool = False) -> None:
+    def switchToNewTab(self, timeToWait: float = 10, closeTab: bool = False) -> None:
         time.sleep(timeToWait)
         self.webdriver.switch_to.window(window_name=self.webdriver.window_handles[1])
         if closeTab:
