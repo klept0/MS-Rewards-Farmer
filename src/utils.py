@@ -294,6 +294,9 @@ class Utils:
     def getMorePromotions(self) -> list[dict]:
         return self.getDashboardData()["morePromotions"]
 
+    def getActivities(self) -> list[dict]:
+        return self.getDailySetPromotions() + self.getMorePromotions()
+
     # Not reliable
     def getBingInfo(self) -> Any:
         session = makeRequestsSession()

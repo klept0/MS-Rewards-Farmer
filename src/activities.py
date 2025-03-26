@@ -198,32 +198,21 @@ class Activities:
         cooldown()
 
     def completeActivities(self):
-        logging.info("[DAILY SET] " + "Trying to complete the Daily Set...")
-        dailySetPromotions = self.browser.utils.getDailySetPromotions()
-        self.browser.utils.goToRewards()
-        for activity in dailySetPromotions:
+        logging.info("[ACTIVITIES] " + "Trying to complete all activities...")
+        for activity in self.browser.utils.getActivities():
             self.completeActivity(activity)
-        logging.info("[DAILY SET] Done")
-
-        logging.info("[MORE PROMOS] " + "Trying to complete More Promotions...")
-        morePromotions: list[dict] = self.browser.utils.getMorePromotions()
-        self.browser.utils.goToRewards()
-        for activity in morePromotions:
-            self.completeActivity(activity)
-        logging.info("[MORE PROMOS] Done")
+        logging.info("[ACTIVITIES] " + "Done")
 
         # todo Send one email for all accounts?
         if CONFIG.get("apprise.notify.incomplete-activity"):  # todo Use fancy new way
             incompleteActivities: list[str] = []
-            for activity in (
-                self.browser.utils.getDailySetPromotions()
-                + self.browser.utils.getMorePromotions()
-            ):  # Have to refresh
+            for activity in self.browser.utils.getActivities():  # Have to refresh
                 activityTitle = cleanupActivityTitle(activity["title"])
                 if (
                     activityTitle not in CONFIG.activities.ignore
                     and activity["pointProgress"] < activity["pointProgressMax"]
                     and activity["attributes"].get("is_unlocked", "True") == "True"
+                    # todo Add check whether activity was in original set, in case added in between
                 ):
                     incompleteActivities.append(activityTitle)
             if incompleteActivities:
