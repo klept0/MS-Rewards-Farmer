@@ -229,10 +229,3 @@ Fork this repo and:
 * if providing a bugfix, create a pull request into master.
 * if providing a new feature, please create a pull request into develop. Extra points if you
   update the [CHANGELOG.md](CHANGELOG.md).
-
-## To Do List (When time permits or someone makes a PR)
-
-- [x] Complete "Read To Earn" (30 pts)
-- [x] Setup flags for mobile/desktop search only
-- [ ] Setup flags to load config / save data in working directory
-- [x] Provide Windows Task Scheduler config
