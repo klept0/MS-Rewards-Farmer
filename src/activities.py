@@ -157,7 +157,7 @@ class Activities:
                 # pyautogui.hotkey("alt", "f4") # Close Edge
                 return
             activityElement = self.browser.utils.waitUntilClickable(
-                By.XPATH, f"//*[contains(text(), '{activityTitle}')]"
+                By.XPATH, f"//*[contains(text(), \"{activityTitle}\")]"
             )
             self.browser.utils.click(activityElement)
             self.browser.utils.switchToNewTab()
