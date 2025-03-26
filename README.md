@@ -213,7 +213,7 @@ You can display this message at any moment using `python main.py -h`.
 - Complete the daily set automatically
 - Complete punch cards automatically
 - Complete the others promotions automatically
-- Headless Mode - _not recommended at all_
+- Headless Mode
 - Multi-Account Management
 - Session storing
 - 2FA Support
