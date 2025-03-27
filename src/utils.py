@@ -2,14 +2,14 @@ import contextlib
 import json
 import locale as pylocale
 import logging
+import random
 import re
 import time
 from argparse import Namespace, ArgumentParser
+from copy import deepcopy
 from datetime import date
 from pathlib import Path
-import random
 from typing import Any, Self
-from copy import deepcopy
 
 import requests
 import yaml
@@ -17,9 +17,6 @@ from apprise import Apprise
 from requests import Session
 from requests.adapters import HTTPAdapter
 from selenium.common import (
-    ElementClickInterceptedException,
-    ElementNotInteractableException,
-    NoSuchElementException,
     TimeoutException,
 )
 from selenium.webdriver.chrome.webdriver import WebDriver
@@ -333,30 +330,6 @@ class Utils:
     def getGoalTitle(self) -> str:
         return self.getDashboardData()["userStatus"]["redeemGoal"]["title"]
 
-    def tryDismissAllMessages(self) -> None:
-        byValues = [
-            (By.ID, "iLandingViewAction"),
-            (By.ID, "iShowSkip"),
-            (By.ID, "iNext"),
-            (By.ID, "iLooksGood"),
-            (By.ID, "idSIButton9"),
-            (By.ID, "bnp_btn_accept"),
-            (By.ID, "acceptButton"),
-            (By.CSS_SELECTOR, ".dashboardPopUpPopUpSelectButton"),
-        ]
-        for byValue in byValues:
-            dismissButtons = []
-            with contextlib.suppress(NoSuchElementException):
-                dismissButtons = self.webdriver.find_elements(
-                    by=byValue[0], value=byValue[1]
-                )
-            for dismissButton in dismissButtons:
-                dismissButton.click()
-        with contextlib.suppress(NoSuchElementException):
-            self.webdriver.find_element(By.ID, "cookie-banner").find_element(
-                By.TAG_NAME, "button"
-            ).click()
-
     def switchToNewTab(self, timeToWait: float = 10, closeTab: bool = False) -> None:
         time.sleep(timeToWait)
         self.webdriver.switch_to.window(window_name=self.webdriver.window_handles[1])
@@ -368,19 +341,6 @@ class Utils:
         time.sleep(0.5)
         self.webdriver.switch_to.window(window_name=self.webdriver.window_handles[0])
         time.sleep(0.5)
-
-    def click(self, element: WebElement) -> None:
-        try:
-            WebDriverWait(self.webdriver, 10).until(
-                expected_conditions.element_to_be_clickable(element)
-            )
-            element.click()
-        except (ElementClickInterceptedException, ElementNotInteractableException):
-            self.tryDismissAllMessages()
-            WebDriverWait(self.webdriver, 10).until(
-                expected_conditions.element_to_be_clickable(element)
-            )
-            element.click()
 
 
 def argumentParser() -> Namespace:
