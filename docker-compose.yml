@@ -1,0 +1,10 @@
+services:
+  ms-rewards:
+    image: ms-rewards:latest
+    container_name: ms-rewards
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+    environment:
+      - RUN_ONCE=false
+      - CRON_SCHEDULE=0 4 * * *
