@@ -84,7 +84,7 @@ class Browser:
         options.add_argument("--ignore-certificate-errors")
         options.add_argument("--ignore-certificate-errors-spki-list")
         options.add_argument("--ignore-ssl-errors")
-        if os.environ.get("DOCKER"):
+        if os.path.exists("/.dockerenv"):
             options.add_argument("--disable-dev-shm-usage")
             options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
@@ -109,7 +109,7 @@ class Browser:
             }
         driver = None
 
-        if os.environ.get("DOCKER"):
+        if os.path.exists("/.dockerenv"):
             driver = webdriver.Chrome(
                 options=options,
                 seleniumwire_options=seleniumwireOptions,
