@@ -227,8 +227,6 @@ class Utils:
             locale = pylocale.getdefaultlocale()[0]
             pylocale.setlocale(pylocale.LC_NUMERIC, locale)
 
-        # self.config = self.loadConfig()
-
     def waitUntilVisible(
         self, by: str, selector: str, timeToWait: float = 10
     ) -> WebElement:

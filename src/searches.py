@@ -91,7 +91,6 @@ class Searches:
                 )
 
             self.bingSearch()
-            del self.googleTrendsShelf[list(self.googleTrendsShelf.keys())[0]]
             sleep(randint(10, 15))
 
         logging.info(
@@ -105,15 +104,16 @@ class Searches:
         trend = list(self.googleTrendsShelf.keys())[0]
         trendKeywords = self.googleTrendsShelf[trend].trend_keywords
         logging.debug(f"trendKeywords={trendKeywords}")
-        trendKeywordsCycle: cycle[str] = cycle(trendKeywords)
-        baseDelay = Searches.baseDelay
         logging.debug(f"trend={trend}")
+        baseDelay = Searches.baseDelay
 
         for i in range(self.maxRetries + 1):
             if i != 0:
-                if len(trendKeywords) == 1:
-                    logging.info("[BING] trendKeywords is singleton, not retrying")
-                    return
+                if not trendKeywords:
+                    del self.googleTrendsShelf[trend]
+
+                    trend = list(self.googleTrendsShelf.keys())[0]
+                    trendKeywords = self.googleTrendsShelf[trend].trend_keywords
 
                 sleepTime: float
                 if Searches.retriesStrategy == Searches.retriesStrategy.EXPONENTIAL:
@@ -134,7 +134,7 @@ class Searches:
                 By.ID, "sb_form_q", timeToWait=40
             )
             searchbar.clear()
-            trendKeyword = next(trendKeywordsCycle)
+            trendKeyword = trendKeywords.pop(0)
             logging.debug(f"trendKeyword={trendKeyword}")
             sleep(1)
             searchbar.send_keys(trendKeyword)
@@ -143,6 +143,7 @@ class Searches:
 
             pointsAfter = self.browser.utils.getAccountPoints()
             if pointsBefore < pointsAfter:
+                del self.googleTrendsShelf[trend]
                 cooldown()
                 return
 
