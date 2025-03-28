@@ -24,7 +24,7 @@ class Activities:
     def completeSurvey(self):
         # Simulate completing a survey activity
         # noinspection SpellCheckingInspection
-        self.webdriver.find_element(By.ID, f"btoption{randint(0, 1)}").click()
+        self.browser.utils.waitUntilClickable(By.ID, f"btoption{randint(0, 1)}").click()
 
     def completeQuiz(self):
         # Simulate completing a quiz activity
@@ -58,8 +58,7 @@ class Activities:
                     if isCorrectOption and isCorrectOption.lower() == "true":
                         answers.append(f"rqAnswerOption{i}")
                 for answer in answers:
-                    element = self.webdriver.find_element(By.ID, answer)
-                    element.click()
+                    self.browser.utils.waitUntilClickable(By.ID, answer).click()
             elif numberOfOptions in [2, 3, 4]:
                 correctOption = self.webdriver.execute_script(
                     "return _w.rewardsQuizRenderInfo.correctAnswer"
@@ -71,10 +70,9 @@ class Activities:
                         ).get_attribute("data-option")
                         == correctOption
                     ):
-                        element = self.webdriver.find_element(
+                        self.browser.utils.waitUntilClickable(
                             By.ID, f"rqAnswerOption{i}"
-                        )
-                        element.click()
+                        ).click()
                         break
 
     def completeABC(self):
