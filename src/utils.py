@@ -28,6 +28,8 @@ from urllib3 import Retry
 
 from .constants import REWARDS_URL, SEARCH_URL
 
+PREFER_BING_INFO = True
+
 
 class Config(dict):
     def __init__(self, *args, **kwargs):
@@ -320,12 +322,18 @@ class Utils:
         return False
 
     def getAccountPoints(self) -> int:
+        if PREFER_BING_INFO:
+            return self.getBingInfo()["userInfo"]["balance"]
         return self.getDashboardData()["userStatus"]["availablePoints"]
 
     def getGoalPoints(self) -> int:
+        if PREFER_BING_INFO:
+            return self.getBingInfo()["flyoutResult"]["userGoal"]["price"]
         return self.getDashboardData()["userStatus"]["redeemGoal"]["price"]
 
     def getGoalTitle(self) -> str:
+        if PREFER_BING_INFO:
+            return self.getBingInfo()["flyoutResult"]["userGoal"]["title"]
         return self.getDashboardData()["userStatus"]["redeemGoal"]["title"]
 
     def switchToNewTab(self, timeToWait: float = 10, closeTab: bool = False) -> None:

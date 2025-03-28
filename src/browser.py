@@ -15,7 +15,14 @@ from selenium.webdriver.chrome.webdriver import WebDriver
 
 from src import RemainingSearches
 from src.userAgentGenerator import GenerateUserAgent
-from src.utils import CONFIG, Utils, getBrowserConfig, getProjectRoot, saveBrowserConfig
+from src.utils import (
+    CONFIG,
+    Utils,
+    getBrowserConfig,
+    getProjectRoot,
+    saveBrowserConfig,
+    PREFER_BING_INFO,
+)
 
 
 class Browser:
@@ -23,9 +30,7 @@ class Browser:
 
     webdriver: undetected_chromedriver.Chrome
 
-    def __init__(
-        self, mobile: bool, account
-    ) -> None:
+    def __init__(self, mobile: bool, account) -> None:
         # Initialize browser instance
         logging.debug("in __init__")
         self.mobile = mobile
@@ -33,10 +38,10 @@ class Browser:
         self.headless = not CONFIG.browser.visible
         self.email = account.email
         self.password = account.password
-        self.totp = account.get('totp')
+        self.totp = account.get("totp")
         self.localeLang, self.localeGeo = self.getLanguageCountry()
         self.proxy = CONFIG.browser.proxy
-        if not self.proxy and account.get('proxy'):
+        if not self.proxy and account.get("proxy"):
             self.proxy = account.proxy
         self.userDataDir = self.setupProfiles()
         self.browserConfig = getBrowserConfig(self.userDataDir)
@@ -263,11 +268,16 @@ class Browser:
     def getRemainingSearches(
         self, desktopAndMobile: bool = False
     ) -> RemainingSearches | int:
-        # bingInfo = self.utils.getBingInfo()
-        bingInfo = self.utils.getDashboardData()
+        if PREFER_BING_INFO:
+            bingInfo = self.utils.getBingInfo()
+        else:
+            bingInfo = self.utils.getDashboardData()
         searchPoints = 1
-        counters = bingInfo["userStatus"]["counters"]
-        pcSearch: dict = counters["pcSearch"][0]
+        if PREFER_BING_INFO:
+            counters = bingInfo["flyoutResult"]["userStatus"]["counters"]
+        else:
+            counters = bingInfo["userStatus"]["counters"]
+        pcSearch: dict = counters["PCSearch" if PREFER_BING_INFO else "pcSearch"][0]
         pointProgressMax: int = pcSearch["pointProgressMax"]
 
         searchPoints: int
@@ -279,10 +289,15 @@ class Browser:
         assert pcPointsRemaining % searchPoints == 0
         remainingDesktopSearches: int = int(pcPointsRemaining / searchPoints)
 
-        activeLevel = bingInfo["userStatus"]["levelInfo"]["activeLevel"]
+        if PREFER_BING_INFO:
+            activeLevel = bingInfo["userInfo"]["profile"]["attributes"]["level"]
+        else:
+            activeLevel = bingInfo["userStatus"]["levelInfo"]["activeLevel"]
         remainingMobileSearches: int = 0
         if activeLevel == "Level2":
-            mobileSearch: dict = counters["mobileSearch"][0]
+            mobileSearch: dict = counters[
+                "MobileSearch" if PREFER_BING_INFO else "mobileSearch"
+            ][0]
             mobilePointsRemaining = (
                 mobileSearch["pointProgressMax"] - mobileSearch["pointProgress"]
             )
