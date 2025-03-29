@@ -92,30 +92,29 @@ def setupLogging():
     _format = CONFIG.logging.format
     terminalHandler = logging.StreamHandler(sys.stdout)
     terminalHandler.setFormatter(ColoredFormatter(_format))
+    terminalHandler.setLevel(logging.getLevelName(CONFIG.logging.level.upper()))
 
     logs_directory = getProjectRoot() / "logs"
     logs_directory.mkdir(parents=True, exist_ok=True)
 
-    # so only our code is logged if level=logging.DEBUG or finer
-    logging.config.dictConfig(
-        {
+    fileHandler = handlers.TimedRotatingFileHandler(
+        logs_directory / "activity.log",
+        when="midnight",
+        backupCount=2,
+        encoding="utf-8",
+    )
+    fileHandler.namer = lambda name: name.replace('.log.', '-') + '.log'
+    fileHandler.setLevel(logging.DEBUG)
+
+    logging.config.dictConfig({
             "version": 1,
             "disable_existing_loggers": True,
-        }
-    )
+    })
+
     logging.basicConfig(
-        level=logging.getLevelName(CONFIG.logging.level.upper()),
+        level=logging.DEBUG,
         format=_format,
-        handlers=[
-            handlers.TimedRotatingFileHandler(
-                logs_directory / "activity.log",
-                when="midnight",
-                interval=1,
-                backupCount=2,
-                encoding="utf-8",
-            ),
-            terminalHandler,
-        ],
+        handlers=[fileHandler, terminalHandler],
         force=True,
     )
 
