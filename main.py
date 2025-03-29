@@ -4,7 +4,6 @@ import logging
 import logging.config
 import logging.handlers as handlers
 import sys
-import traceback
 from datetime import datetime
 from enum import Enum, auto
 
@@ -18,7 +17,7 @@ from src import (
 from src.activities import Activities
 from src.browser import RemainingSearches
 from src.loggingColoredFormatter import ColoredFormatter
-from src.utils import CONFIG, sendNotification, getProjectRoot, formatNumber
+from src.utils import CONFIG, APPRISE, getProjectRoot, formatNumber
 
 
 def main():
@@ -32,12 +31,16 @@ def main():
             earned_points = executeBot(currentAccount)
         except Exception as e1:
             logging.error("", exc_info=True)
-            sendNotification(
-                f"⚠️ Error executing {currentAccount.email}, please check the log",
-                traceback.format_exc(),
-                e1,
-            )
-            continue
+            if CONFIG.get("apprise.notify.uncaught-exception"):
+                APPRISE.notify(
+                    f"{type(e1).__name__}: {e1}",
+                    f"⚠️ Error executing {currentAccount.email}, please check the log",
+                )
+            if len(CONFIG.accounts) > 1:
+                continue
+            else:
+                exit(1)
+
         previous_points = previous_points_data.get(currentAccount.email, 0)
 
         # Calculate the difference in points from the prior day
@@ -200,8 +203,7 @@ def executeBot(currentAccount):
                 f" ({goalTitle})"
             )
 
-        sendNotification(
-            "Daily Points Update",
+        APPRISE.notify(
             "\n".join(
                 [
                     f"👤 Account: {currentAccount.email}",
@@ -210,12 +212,13 @@ def executeBot(currentAccount):
                     goalStatus,
                 ]
             ),
+            "Daily Points Update",
         )
     elif appriseSummary == AppriseSummary.ON_ERROR:
         if remainingSearches.getTotal() > 0:
-            sendNotification(
-                "Error: remaining searches",
+            APPRISE.notify(
                 f"account email: {currentAccount.email}, {remainingSearches}",
+                "Error: remaining searches",
             )
     elif appriseSummary == AppriseSummary.NEVER:
         pass
@@ -259,7 +262,9 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         logging.exception("")
-        sendNotification(
-            "⚠️ Error occurred, please check the log", traceback.format_exc(), e
-        )
+        if CONFIG.get("apprise.notify.uncaught-exception"):
+            APPRISE.notify(
+                f"{type(e).__name__}: {e}",
+                "⚠️ Error occurred, please check the log",
+            )
         exit(1)

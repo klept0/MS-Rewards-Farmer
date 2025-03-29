@@ -9,7 +9,7 @@ from selenium.webdriver.remote.webelement import WebElement
 
 from src.browser import Browser
 from src.constants import REWARDS_URL
-from src.utils import CONFIG, sendNotification, getAnswerCode, cooldown
+from src.utils import CONFIG, APPRISE, getAnswerCode, cooldown
 
 
 class Activities:
@@ -215,9 +215,9 @@ class Activities:
                     incompleteActivities.append(activityTitle)
             if incompleteActivities:
                 logging.info(f"incompleteActivities: {incompleteActivities}")
-                sendNotification(
-                    f"We found some incomplete activities for {self.browser.email}",
+                APPRISE.notify(
                     '"' + '", "'.join(incompleteActivities) + '"\n' + REWARDS_URL,
+                    f"We found some incomplete activities for {self.browser.email}",
                 )
 
 

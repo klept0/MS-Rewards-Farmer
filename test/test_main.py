@@ -2,7 +2,6 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 import main
-from src import utils
 from src.utils import Config, CONFIG
 
 

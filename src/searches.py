@@ -2,8 +2,7 @@ import dbm.dumb
 import logging
 import shelve
 from enum import Enum, auto
-from itertools import cycle
-from random import random, randint, shuffle
+from random import random, randint
 from time import sleep
 from typing import Final
 

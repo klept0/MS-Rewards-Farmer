@@ -1,7 +1,5 @@
-import argparse
 import contextlib
 import logging
-from argparse import Namespace
 
 from pyotp import TOTP
 from selenium.common import TimeoutException
@@ -13,7 +11,7 @@ from selenium.webdriver.common.by import By
 from undetected_chromedriver import Chrome
 
 from src.browser import Browser
-from src.utils import sendNotification, CONFIG
+from src.utils import CONFIG, APPRISE
 
 
 class Login:
@@ -101,8 +99,10 @@ class Login:
                 codeField.text,
             )
             if CONFIG.get("apprise.notify.login-code"):
-                sendNotification(
-                    f"Confirm your login on your phone", f"Code: {codeField.text} (expires in 1 minute)")
+                APPRISE.notify(
+                    f"Code: {codeField.text} (expires in 1 minute)",
+                    f"Confirm your login on your phone",
+                )
             self.utils.waitUntilVisible(By.NAME, "kmsiForm", 60)
             logging.info("[LOGIN] Successfully verified!")
         else:
@@ -143,8 +143,10 @@ class Login:
                     codeField.text,
                 )
                 if CONFIG.get("apprise.notify.login-code"):
-                    sendNotification(
-                        f"Confirm your login on your phone", f"Code: {codeField.text} (expires in 1 minute)")
+                    APPRISE.notify(
+                        f"Code: {codeField.text} (expires in 1 minute)",
+                        f"Confirm your login on your phone",
+                    )
                 self.utils.waitUntilVisible(By.NAME, "kmsiForm", 60)
                 logging.info("[LOGIN] Successfully verified!")
 
