@@ -560,24 +560,25 @@ def loadConfig(configFilename="config.yaml") -> Config:
         createEmptyConfig(configFile, args_config)
 
     config = DEFAULT_CONFIG | Config.fromYaml(configFile) | args_config
-    config = setupAccounts(config)
+
+    if config.rtfr:
+        print("Please read the README.md file before using this script. Exiting.")
+        exit(0)
 
     return config
 
 
-def sendNotification(title: str, body: str, e: Exception = None) -> None:
-    if not CONFIG.apprise.enabled or (
-        e and not CONFIG.get("apprise.notify.uncaught-exception")
-    ):
-        return
+def initApprise() -> Apprise:
     apprise = Apprise()
-    urls: list[str] = CONFIG.apprise.urls
-    if not urls:
-        logging.debug("No urls found, not sending notification")
-        return
-    for url in urls:
-        apprise.add(url)
-    assert apprise.notify(title=str(title), body=str(body))
+
+    urls = []
+    if CONFIG.apprise.enabled:
+        urls: list[str] = CONFIG.apprise.urls
+        if not urls:
+            logging.info("No apprise urls found, not sending notification")
+
+    apprise.add(urls)
+    return apprise
 
 
 def getAnswerCode(key: str, string: str) -> str:
@@ -629,8 +630,5 @@ def cooldown() -> None:
     logging.info(f"[COOLDOWN] Waiting for {cooldownTime} seconds")
     time.sleep(cooldownTime)
 
-
 CONFIG = loadConfig()
-if CONFIG.rtfr:
-    print("Please read the README.md file before using this script. Exiting.")
-    exit(0)
+APPRISE = initApprise()
