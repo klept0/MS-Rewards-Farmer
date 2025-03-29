@@ -574,9 +574,8 @@ def initApprise() -> Apprise:
     urls = []
     if CONFIG.apprise.enabled:
         urls: list[str] = CONFIG.apprise.urls
-
-    if not urls:
-        logging.debug("No urls found, not sending notification")
+        if not urls:
+            logging.info("No apprise urls found, not sending notification")
 
     apprise.add(urls)
     return apprise

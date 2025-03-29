@@ -26,20 +26,20 @@ def main():
     # Load previous day's points data
     previous_points_data = load_previous_points_data()
 
+    foundError = False
+
     for currentAccount in CONFIG.accounts:
         try:
             earned_points = executeBot(currentAccount)
         except Exception as e1:
             logging.error("", exc_info=True)
+            foundError = True
             if CONFIG.get("apprise.notify.uncaught-exception"):
                 APPRISE.notify(
                     f"{type(e1).__name__}: {e1}",
                     f"⚠️ Error executing {currentAccount.email}, please check the log",
                 )
-            if len(CONFIG.accounts) > 1:
-                continue
-            else:
-                exit(1)
+            continue
 
         previous_points = previous_points_data.get(currentAccount.email, 0)
 
@@ -59,6 +59,9 @@ def main():
     # Save the current day's points data for the next day in the "logs" folder
     save_previous_points_data(previous_points_data)
     logging.info("[POINTS] Data saved for the next day.")
+
+    if foundError:
+        exit(1)
 
 
 def log_daily_points_to_csv(earned_points, points_difference):
