@@ -132,9 +132,6 @@ class Activities:
                 logging.debug("Already done, returning")
                 return
             if activity["attributes"].get("is_unlocked", "True") != "True":
-                assert (
-                    activity["attributes"].get("isExploreOnBingTask", "False") == "True"
-                )
                 logging.debug("Activity locked, returning")
                 return
             if activityTitle in CONFIG.activities.ignore:
