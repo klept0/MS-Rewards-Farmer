@@ -4,6 +4,8 @@ import locale as pylocale
 import logging
 import random
 import re
+import shutil
+import psutil
 import time
 from argparse import Namespace, ArgumentParser
 from copy import deepcopy
@@ -432,6 +434,12 @@ def argumentParser() -> Namespace:
         action="store_true",
         help="Set the logging level to DEBUG",
     )
+    parser.add_argument(
+        "-r",
+        "--reset",
+        action="store_true",
+        help="Delete the session folder and temporary files and kill all chrome processes. Can help resolve issues.",
+    )
     return parser.parse_args()
 
 
@@ -543,7 +551,35 @@ def createEmptyConfig(configPath: Path, config: Config) -> None:
     )
     with open(configPath, "w", encoding="utf-8") as configFile:
         yaml.dump((emptyConfig | config).toDict(), configFile)
-    logging.info(f"[CONFIG] A configuration file was created at '{configPath}'")
+    print(f"A configuration file was created at '{configPath}'")
+    exit(0)
+
+
+def resetBot():
+    """
+    Delete the session folder and temporary files and kill all chrome processes.
+    """
+
+    sessionPath = getProjectRoot() / "sessions"
+    if sessionPath.exists():
+        print(f"Deleting sessions folder '{sessionPath}'")
+        shutil.rmtree(sessionPath)
+
+    filesToDeletePaths = (
+        getProjectRoot() / "google_trends.bak",
+        getProjectRoot() / "google_trends.dat",
+        getProjectRoot() / "google_trends.dir",
+        getProjectRoot() / "logs" / "previous_points_data.json",
+    )
+    for path in filesToDeletePaths:
+        print(f"Deleting file '{path}'")
+        path.unlink(missing_ok=True)
+
+    for proc in psutil.process_iter(['pid', 'name']):
+        if proc.info['name'] == "chrome.exe":
+            proc.kill()
+
+    print("All chrome processes killed")
     exit(0)
 
 
@@ -558,6 +594,9 @@ def loadConfig(configFilename="config.yaml") -> Config:
 
     if args.create_config:
         createEmptyConfig(configFile, args_config)
+
+    if args.reset:
+        resetBot()
 
     config = DEFAULT_CONFIG | Config.fromYaml(configFile) | args_config
 

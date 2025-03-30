@@ -13,7 +13,7 @@ body:
             (I have checked every bug report on GitHub)
           required: true
         - label: |
-            I've cleared the sessions folder.
+            I've ran the program with the -r argument.
           required: true
   - type: dropdown
     id: branch
