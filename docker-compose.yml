@@ -1,7 +1,7 @@
 services:
   ms-rewards:
-    image: ms-rewards:latest
-    container_name: ms-rewards
+    image: ms-rewards-farmer:latest
+    container_name: ms-rewards-farmer
     volumes:
       - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped

@@ -14,8 +14,7 @@ RUN apt-get update && \
     locale-gen en_US.UTF-8 && \
     chmod +x /app/docker.sh && \
     rm -rf /var/lib/apt/lists/* && \
-    rm -rf /etc/cron.*/*
-
-RUN pip install --no-cache-dir -r requirements.txt 
+    rm -rf /etc/cron.*/* && \
+    pip install --no-cache-dir -r requirements.txt
 
 CMD ["/app/docker.sh"]
