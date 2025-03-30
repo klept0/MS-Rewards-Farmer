@@ -13,6 +13,9 @@ from src.utils import CONFIG, APPRISE, getAnswerCode, cooldown
 
 
 class Activities:
+    """
+    Class to handle activities in MS Rewards.
+    """
     def __init__(self, browser: Browser):
         self.browser = browser
         self.webdriver = browser.webdriver
@@ -141,7 +144,7 @@ class Activities:
             if "puzzle" in activityTitle.lower():
                 logging.info(f"Skipping {activityTitle} because it's not supported")
                 return
-            elif "Windows search" == activityTitle:
+            if "Windows search" == activityTitle:
                 # for search in {"what time is it in dublin", "what is the weather"}:
                 #     pyautogui.press("win")
                 #     sleep(1)

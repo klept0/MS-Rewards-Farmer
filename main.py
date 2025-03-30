@@ -2,7 +2,7 @@ import csv
 import json
 import logging
 import logging.config
-import logging.handlers as handlers
+from logging import handlers
 import sys
 from datetime import datetime
 from enum import Enum, auto
@@ -61,7 +61,7 @@ def main():
     logging.info("[POINTS] Data saved for the next day.")
 
     if foundError:
-        exit(1)
+        sys.exit(1)
 
 
 def log_daily_points_to_csv(earned_points, points_difference):
@@ -79,7 +79,7 @@ def log_daily_points_to_csv(earned_points, points_difference):
     fieldnames = ["Date", "Earned Points", "Points Difference"]
     is_new_file = not csv_filename.exists()
 
-    with open(csv_filename, mode="a", newline="") as file:
+    with open(csv_filename, mode="a", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
 
         if is_new_file:
@@ -197,8 +197,8 @@ def executeBot(currentAccount):
         goalStatus = ""
         if goalPoints > 0:
             logging.info(
-                f"[POINTS] You are now at {(formatNumber((accountPoints / goalPoints) * 100))}% of your "
-                f"goal ({goalTitle}) !"
+                f"[POINTS] You are now at {(formatNumber((accountPoints / goalPoints) * 100))}%"
+                f" of your goal ({goalTitle}) !"
             )
             goalStatus = (
                 f"🎯 Goal reached: {(formatNumber((accountPoints / goalPoints) * 100))}%"
@@ -231,7 +231,7 @@ def executeBot(currentAccount):
 def export_points_to_csv(points_data):
     logs_directory = getProjectRoot() / "logs"
     csv_filename = logs_directory / "points_data.csv"
-    with open(csv_filename, mode="a", newline="") as file:  # Use "a" mode for append
+    with open(csv_filename, mode="a", newline="", encoding="utf-8") as file:
         fieldnames = ["Account", "Earned Points", "Points Difference"]
         writer = csv.DictWriter(file, fieldnames=fieldnames)
 
@@ -246,7 +246,8 @@ def export_points_to_csv(points_data):
 # Define a function to load the previous day's points data from a file in the "logs" folder
 def load_previous_points_data():
     try:
-        with open(getProjectRoot() / "logs" / "previous_points_data.json", "r") as file:
+        with open(
+                getProjectRoot() / "logs" / "previous_points_data.json", encoding='utf-8') as file:
             return json.load(file)
     except FileNotFoundError:
         return {}
@@ -255,7 +256,7 @@ def load_previous_points_data():
 # Define a function to save the current day's points data for the next day in the "logs" folder
 def save_previous_points_data(data):
     logs_directory = getProjectRoot() / "logs"
-    with open(logs_directory / "previous_points_data.json", "w") as file:
+    with open(logs_directory / "previous_points_data.json", "w", encoding="utf-8") as file:
         json.dump(data, file, indent=4)
 
 
@@ -269,4 +270,4 @@ if __name__ == "__main__":
                 f"{type(e).__name__}: {e}",
                 "⚠️ Error occurred, please check the log",
             )
-        exit(1)
+        sys.exit(1)

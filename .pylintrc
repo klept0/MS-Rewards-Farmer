@@ -439,7 +439,15 @@ disable=raw-checker-failed,
         fixme,
         invalid-name,
         missing-function-docstring,
-        missing-module-docstring
+        missing-module-docstring,
+        broad-exception-caught, # As we catch any error to avoid stopping tasks and sending correct apprise notifications
+        attribute-defined-outside-init, # As we set attributes outside __init__ in many cases
+        logging-fstring-interpolation, # As we always log at the DEBUG level, so lazy interpolation doesn't change anything
+        logging-not-lazy,
+        too-many-branches,
+        too-many-instance-attributes,
+        too-many-statements,
+        too-few-public-methods
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

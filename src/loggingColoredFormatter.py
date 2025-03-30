@@ -2,8 +2,9 @@ import logging
 
 
 class ColoredFormatter(logging.Formatter):
-    verbose_notifs = False
-    notifier = str()
+    """
+    Custom formatter to add colors to log messages based on their severity level.
+    """
 
     grey = "\x1b[38;21m"
     blue = "\x1b[38;5;39m"
@@ -25,10 +26,6 @@ class ColoredFormatter(logging.Formatter):
 
     def format(self, record):
         logFmt = self.FORMATS.get(record.levelno)
-
-        if self.verbose_notifs and self.notifier is not None:
-            log_msg = f"[{self.formatTime(record, self.datefmt)}] [{logging.getLevelName(record.levelno)}] {record.msg}"
-            self.notifier.send(log_msg)
 
         formatter = logging.Formatter(logFmt)
         return formatter.format(record)

@@ -237,7 +237,8 @@ class Browser:
                 if not country:
                     country = ipapiLocation["country"]
             except RateLimited:
-                logging.warning(exc_info=True)
+                logging.warning(
+                    "Rate limited by ipapi, using default language and country", exc_info=True)
 
         if not language:
             language = "en"

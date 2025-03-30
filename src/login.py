@@ -14,7 +14,16 @@ from src.browser import Browser
 from src.utils import CONFIG, APPRISE
 
 
+class LoginError(Exception):
+    """
+    Custom exception for login errors.
+    """
+
+
 class Login:
+    """
+    Class to handle login to MS Rewards.
+    """
     browser: Browser
     webdriver: Chrome
 
@@ -30,21 +39,21 @@ class Login:
             )
             self.locked(element)
         except NoSuchElementException:
-            return
+            pass
 
     def check_banned_user(self):
         try:
             element = self.webdriver.find_element(By.XPATH, '//*[@id="fraudErrorBody"]')
             self.banned(element)
         except NoSuchElementException:
-            return
+            pass
 
     def locked(self, element):
         try:
             if element.is_displayed():
                 logging.critical("This Account is Locked!")
                 self.webdriver.close()
-                raise Exception("Account locked, moving to the next account.")
+                raise LoginError("Account locked, moving to the next account.")
         except (ElementNotInteractableException, NoSuchElementException):
             pass
 
@@ -53,7 +62,7 @@ class Login:
             if element.is_displayed():
                 logging.critical("This Account is Banned!")
                 self.webdriver.close()
-                raise Exception("Account banned, moving to the next account.")
+                raise LoginError("Account banned, moving to the next account.")
         except (ElementNotInteractableException, NoSuchElementException):
             pass
 
@@ -101,7 +110,7 @@ class Login:
             if CONFIG.get("apprise.notify.login-code"):
                 APPRISE.notify(
                     f"Code: {codeField.text} (expires in 1 minute)",
-                    f"Confirm your login on your phone",
+                    "Confirm your login on your phone",
                 )
             self.utils.waitUntilVisible(By.NAME, "kmsiForm", 60)
             logging.info("[LOGIN] Successfully verified!")
@@ -129,28 +138,11 @@ class Login:
 
             if isDeviceAuthEnabled:
                 # Device-based authentication not supported
-                raise Exception(
+                raise LoginError(
                     "Device authentication not supported. Please use TOTP or disable 2FA."
                 )
 
-                # Device auth, have user confirm code on phone
-                codeField = self.utils.waitUntilVisible(
-                    By.ID, "idSpan_SAOTCAS_DescSessionID"
-                )
-                logging.warning(
-                    "[LOGIN] Confirm your login with code %s on your phone (you have"
-                    " one minute)!\a",
-                    codeField.text,
-                )
-                if CONFIG.get("apprise.notify.login-code"):
-                    APPRISE.notify(
-                        f"Code: {codeField.text} (expires in 1 minute)",
-                        f"Confirm your login on your phone",
-                    )
-                self.utils.waitUntilVisible(By.NAME, "kmsiForm", 60)
-                logging.info("[LOGIN] Successfully verified!")
-
-            elif isTOTPEnabled:
+            if isTOTPEnabled:
                 # One-time password required
                 if self.browser.totp is not None:
                     # TOTP token provided

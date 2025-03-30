@@ -29,6 +29,10 @@ class RetriesStrategy(Enum):
 
 
 class Searches:
+    """
+    Class to handle searches in MS Rewards.
+    """
+
     maxRetries: Final[int] = CONFIG.retries.max
     """
     the max amount of retries to attempt
@@ -123,7 +127,8 @@ class Searches:
                     raise AssertionError
                 sleepTime += baseDelay * random()  # Add jitter
                 logging.debug(
-                    f"[BING] Search attempt not counted {i}/{Searches.maxRetries}, sleeping {sleepTime}"
+                    f"[BING] Search attempt not counted {i}/{Searches.maxRetries},"
+                    f" sleeping {sleepTime}"
                     f" seconds..."
                 )
                 sleep(sleepTime)

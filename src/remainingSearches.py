@@ -2,6 +2,10 @@ from typing import NamedTuple
 
 
 class RemainingSearches(NamedTuple):
+    """
+    Remaining searches for the current account.
+    """
+
     desktop: int
     mobile: int
 
