@@ -18,6 +18,10 @@ scope = ["service::prod.rewardsplatform.microsoft.com::MBI_SSL"]
 
 
 class ReadToEarn:
+    """
+    Class to handle Read to Earn in MS Rewards.
+    """
+
     def __init__(self, browser: Browser):
         self.browser = browser
         self.webdriver = browser.webdriver
@@ -28,25 +32,12 @@ class ReadToEarn:
         logging.info("[READ TO EARN] " + "Trying to complete Read to Earn...")
 
         accountName = self.browser.email
-
-        # Should Really Cache Token and load it in.
-        # To Save token
-        # with open('token.pickle', 'wb') as f:
-        #    pickle.dump(token, f)
-        # To Load token
-        # with open('token.pickle', 'rb') as f:
-        #   token = pickle.load(f)
-        # mobileApp = OAuth2Session(client_id, scope=scope, token=token)
-
-        # Use Webdriver to get OAuth2 Token
-        # This works, since you already logged into Bing, so no user interaction needed
-
         mobileApp = makeRequestsSession(
             OAuth2Session(client_id, scope=scope, redirect_uri=redirect_uri)
         )
-        authorization_url, state = mobileApp.authorization_url(
+        authorization_url = mobileApp.authorization_url(
             authorization_base_url, access_type="offline_access", login_hint=accountName
-        )
+        )[0]
 
         # Get Referer URL from webdriver
         self.webdriver.get(authorization_url)
@@ -56,15 +47,10 @@ class ReadToEarn:
                 self.webdriver.current_url[:48]
                 == "https://login.live.com/oauth20_desktop.srf?code="
             ):
-                redirect_response = self.webdriver.current_url
                 break
             time.sleep(1)
 
         logging.info("[READ TO EARN] Logged-in successfully !")
-        # Use returned URL to create a token
-        token = mobileApp.fetch_token(
-            token_url, authorization_response=redirect_response, include_client_id=True
-        )
 
         # Do Daily Check in
         json_data = {
@@ -105,12 +91,13 @@ class ReadToEarn:
                 json=json_data,
             )
             newbalance = r.json().get("response").get("balance")
+
             if newbalance == balance:
                 logging.info("[READ TO EARN] Read All Available Articles !")
                 break
-            else:
-                logging.info("[READ TO EARN] Read Article " + str(i + 1))
-                balance = newbalance
-                time.sleep(random.randint(10, 20))
+
+            logging.info("[READ TO EARN] Read Article " + str(i + 1))
+            balance = newbalance
+            time.sleep(random.randint(10, 20))
 
         logging.info("[READ TO EARN] Completed the Read to Earn successfully !")

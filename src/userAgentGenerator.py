@@ -10,7 +10,8 @@ from src.utils import makeRequestsSession
 class GenerateUserAgent:
     """A class for generating user agents for Microsoft Rewards Farmer."""
 
-    # Reduced device name, ref: https://developer.chrome.com/blog/user-agent-reduction-android-model-and-version/
+    # Reduced device name
+    # ref: https://developer.chrome.com/blog/user-agent-reduction-android-model-and-version/
     MOBILE_DEVICE = "K"
 
     USER_AGENT_TEMPLATES = {
@@ -40,7 +41,8 @@ class GenerateUserAgent:
         Generates a user agent string for either a mobile or PC device.
 
         Args:
-            mobile: A boolean indicating whether the user agent should be generated for a mobile device.
+            mobile: A boolean indicating whether the user agent should be
+            generated for a mobile device.
 
         Returns:
             A string containing the user agent for the specified device.
@@ -93,7 +95,8 @@ class GenerateUserAgent:
         Generates the system components for the user agent string.
 
         Args:
-            mobile: A boolean indicating whether the user agent should be generated for a mobile device.
+            mobile: A boolean indicating whether the user agent should be
+            generated for a mobile device.
 
         Returns:
             A string containing the system components for the user agent string.

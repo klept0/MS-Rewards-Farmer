@@ -5,7 +5,7 @@ import logging
 import random
 import re
 import shutil
-import psutil
+import sys
 import time
 from argparse import Namespace, ArgumentParser
 from copy import deepcopy
@@ -13,6 +13,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Self
 
+import psutil
 import requests
 import yaml
 from apprise import Apprise
@@ -34,6 +35,12 @@ PREFER_BING_INFO = True
 
 
 class Config(dict):
+    """
+    A class that extends the built-in dict class to provide additional functionality
+    (such as nested dictionaries and lists, YAML loading, and attribute access)
+    to make it easier to work with configuration data.
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for key, value in self.items():
@@ -66,29 +73,30 @@ class Config(dict):
         return super().__getattribute__(item)
 
     def __setattr__(self, key, value):
-        if type(value) is dict:
+        if isinstance(value, dict):
             value = self.__class__(value)
-        if type(value) is list:
+        if isinstance(value, list):
             value = self.configifyList(value)
         self[key] = value
 
     def __getitem__(self, item):
-        if type(item) is not str or not "." in item:
+        if not isinstance(item, str) or not "." in item:
             return super().__getitem__(item)
         item: str
         items = item.split(".")
         found = super().__getitem__(items[0])
-        for item in items[1:]:
-            found = found.__getitem__(item)
+        for child_items in items[1:]:
+            found = found.__getitem__(child_items)
         return found
 
     def __setitem__(self, key, value):
-        if type(value) is dict:
+        if isinstance(value, dict):
             value = self.__class__(value)
-        if type(value) is list:
+        if isinstance(value, list):
             value = self.configifyList(value)
-        if type(key) is not str or not "." in key:
-            return super().__setitem__(key, value)
+        if not isinstance(key, str) or not "." in key:
+            super().__setitem__(key, value)
+            return
         item: str
         items = key.split(".")
         found = super().__getitem__(items[0])
@@ -132,11 +140,11 @@ class Config(dict):
             new[index] = item
         return new
 
-    def get(self, key, default=None):
-        if type(key) is not str or not "." in key:
-            return super().get(key, default)
+    def get(self, item, default=None):
+        if not isinstance(item, str) or not "." in item:
+            return super().get(item, default)
         item: str
-        keys = key.split(".")
+        keys = item.split(".")
         found = super().get(keys[0], default)
         for key in keys[1:]:
             found = found.get(key, default)
@@ -225,11 +233,14 @@ DEFAULT_CONFIG: Config = Config(
 
 
 class Utils:
+    """
+    A class that provides utility functions for Selenium WebDriver interactions.
+    """
 
     def __init__(self, webdriver: WebDriver):
         self.webdriver = webdriver
         with contextlib.suppress(Exception):
-            locale = pylocale.getdefaultlocale()[0]
+            locale = pylocale.getlocale()[0]
             pylocale.setlocale(pylocale.LC_NUMERIC, locale)
 
     def waitUntilVisible(
@@ -306,7 +317,7 @@ class Utils:
 
         response = session.get("https://www.bing.com/rewards/panelflyout/getuserinfo")
 
-        assert response.status_code == requests.codes.ok
+        assert response.status_code == requests.codes.ok # pylint: disable=no-member
         # fixme Add more asserts
         # todo Add fallback to src.utils.Utils.getDashboardData (slower but more reliable)
         return response.json()
@@ -355,8 +366,9 @@ class Utils:
 def argumentParser() -> Namespace:
     parser = ArgumentParser(
         description="A simple bot that uses Selenium to farm M$ Rewards in Python",
-        epilog="At least one account should be specified, either using command line arguments or a configuration file."
-        "\nAll specified arguments will override the configuration file values.",
+        epilog="At least one account should be specified,"
+               " either using command line arguments or a configuration file."
+               "\nAll specified arguments will override the configuration file values.",
     )
     parser.add_argument(
         "-c",
@@ -369,7 +381,8 @@ def argumentParser() -> Namespace:
         "-C",
         "--create-config",
         action="store_true",
-        help="Create a fillable configuration file with basic settings and given ones if none exists",
+        help="Create a fillable configuration file with basic settings"
+             " and given ones if none exists",
     )
     parser.add_argument(
         "-v",
@@ -412,7 +425,8 @@ def argumentParser() -> Namespace:
         "--proxy",
         type=str,
         default=None,
-        help="Global Proxy, supports http/https/socks4/socks5 (overrides config per-account proxies)"
+        help="Global Proxy, supports http/https/socks4/socks5"
+             " (overrides config per-account proxies)"
         "\n`(ex: http://user:pass@host:port)`",
     )
     parser.add_argument(
@@ -438,7 +452,8 @@ def argumentParser() -> Namespace:
         "-r",
         "--reset",
         action="store_true",
-        help="Delete the session folder and temporary files and kill all chrome processes. Can help resolve issues.",
+        help="Delete the session folder and temporary files and kill"
+             " all chrome processes. Can help resolve issues.",
     )
     return parser.parse_args()
 
@@ -518,7 +533,7 @@ def setupAccounts(config: Config) -> Config:
         [ACCOUNT]   then edit the generated file by replacing the email and password using yours. 
         """
         logging.error(noAccountsNotice)
-        exit(1)
+        sys.exit(1)
 
     random.shuffle(loadedAccounts)
     config.accounts = loadedAccounts
@@ -528,7 +543,7 @@ def setupAccounts(config: Config) -> Config:
 def createEmptyConfig(configPath: Path, config: Config) -> None:
     if configPath.is_file():
         logging.error(f"[CONFIG] A file already exists at '{configPath}'")
-        exit(1)
+        sys.exit(1)
 
     emptyConfig = Config(
         {
@@ -552,7 +567,7 @@ def createEmptyConfig(configPath: Path, config: Config) -> None:
     with open(configPath, "w", encoding="utf-8") as configFile:
         yaml.dump((emptyConfig | config).toDict(), configFile)
     print(f"A configuration file was created at '{configPath}'")
-    exit(0)
+    sys.exit()
 
 
 def resetBot():
@@ -580,7 +595,7 @@ def resetBot():
             proc.kill()
 
     print("All chrome processes killed")
-    exit(0)
+    sys.exit()
 
 
 def loadConfig(configFilename="config.yaml") -> Config:
@@ -602,7 +617,7 @@ def loadConfig(configFilename="config.yaml") -> Config:
 
     if config.rtfr:
         print("Please read the README.md file before using this script. Exiting.")
-        exit(0)
+        sys.exit()
 
     return config
 
@@ -633,14 +648,14 @@ def formatNumber(number, num_decimals=2) -> str:
 def getBrowserConfig(sessionPath: Path) -> dict | None:
     configFile = sessionPath / "config.json"
     if not configFile.exists():
-        return
-    with open(configFile, "r") as f:
+        return None
+    with open(configFile, encoding="utf-8") as f:
         return json.load(f)
 
 
 def saveBrowserConfig(sessionPath: Path, config: dict) -> None:
     configFile = sessionPath / "config.json"
-    with open(configFile, "w") as f:
+    with open(configFile, "w", encoding="utf-8") as f:
         json.dump(config, f)
 
 
