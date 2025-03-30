@@ -176,7 +176,7 @@ accounts: # The accounts to use. You can put zero, one or an infinite number of 
 
 ```
 usage: main.py [-h] [-c CONFIG] [-C] [-v] [-l LANG] [-g GEO] [-em EMAIL] [-pw PASSWORD]
-               [-p PROXY] [-t {desktop,mobile,both}] [-da] [-d]
+               [-p PROXY] [-t {desktop,mobile,both}] [-da] [-d] [-r]
 
 A simple bot that uses Selenium to farm M$ Rewards in Python
 
@@ -202,6 +202,8 @@ options:
   -da, --disable-apprise
                         Disable Apprise notifications, useful when developing
   -d, --debug           Set the logging level to DEBUG
+  -r, --reset           Delete the session folder and temporary files and kill all chrome
+                        processes. Can help resolve issues.
 
 At least one account should be specified, either using command line arguments or a
 configuration file. All specified arguments will override the configuration file values
