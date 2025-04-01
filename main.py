@@ -176,7 +176,10 @@ def executeBot(currentAccount):
             Login(mobileBrowser).login()
             if startingPoints is None:
                 startingPoints = utils.getAccountPoints()
-            ReadToEarn(mobileBrowser).completeReadToEarn()
+            try:
+                ReadToEarn(mobileBrowser).completeReadToEarn()
+            except Exception:
+                logging.exception("[READ TO EARN] Failed to complete Read to Earn")
             with Searches(mobileBrowser) as searches:
                 searches.bingSearches()
 
