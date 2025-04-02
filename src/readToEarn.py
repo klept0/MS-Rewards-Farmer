@@ -7,7 +7,7 @@ from requests_oauthlib import OAuth2Session
 
 from src.browser import Browser
 from .activities import Activities
-from .utils import makeRequestsSession
+from .utils import makeRequestsSession, cooldown
 
 # todo Use constant naming style
 client_id = "0000000040170455"
@@ -101,6 +101,6 @@ class ReadToEarn:
 
             logging.info("[READ TO EARN] Read Article " + str(i + 1))
             balance = newbalance
-            time.sleep(random.randint(10, 20))
+            cooldown()
 
         logging.info("[READ TO EARN] Completed the Read to Earn successfully !")
