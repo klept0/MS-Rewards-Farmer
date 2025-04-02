@@ -136,6 +136,7 @@ class Activities:
                 return
             if activity["attributes"].get("is_unlocked", "True") != "True":
                 logging.debug("Activity locked, returning")
+                assert activityTitle in CONFIG.activities.search, "Add activity title to search mapping in config"
                 return
             if activityTitle in CONFIG.activities.ignore:
                 logging.debug(f"Ignoring {activityTitle}")
