@@ -47,11 +47,14 @@ class ReadToEarn:
                 self.webdriver.current_url[:48]
                 == "https://login.live.com/oauth20_desktop.srf?code="
             ):
+                redirect_response = self.webdriver.current_url
                 break
             time.sleep(1)
 
         logging.info("[READ TO EARN] Logged-in successfully !")
-
+        token = mobileApp.fetch_token(
+            token_url, authorization_response=redirect_response, include_client_id=True
+        )
         # Do Daily Check in
         json_data = {
             "amount": 1,
