@@ -393,13 +393,13 @@ class Utils:
         try:
             WebDriverWait(self.webdriver, 10).until(
                 expected_conditions.element_to_be_clickable(element)
-            )
-            element.click()
-        except (ElementClickInterceptedException, ElementNotInteractableException):
+            ).click()
+        except (TimeoutException, ElementClickInterceptedException, ElementNotInteractableException):
             self.tryDismissAllMessages()
-            WebDriverWait(self.webdriver, 10).until(
-                expected_conditions.element_to_be_clickable(element)
-            )
+            with contextlib.suppress(TimeoutException):
+                WebDriverWait(self.webdriver, 10).until(
+                    expected_conditions.element_to_be_clickable(element)
+                )
             element.click()
 
 

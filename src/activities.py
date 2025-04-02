@@ -35,7 +35,7 @@ class Activities:
             TimeoutException
         ):  # Handles in case quiz was started in previous run
             startQuiz = self.browser.utils.waitUntilQuizLoads()
-            startQuiz.click()
+            self.browser.utils.click(startQuiz)
         maxQuestions = self.webdriver.execute_script(
             "return _w.rewardsQuizRenderInfo.maxQuestions"
         )
@@ -61,7 +61,8 @@ class Activities:
                     if isCorrectOption and isCorrectOption.lower() == "true":
                         answers.append(f"rqAnswerOption{i}")
                 for answer in answers:
-                    self.browser.utils.waitUntilClickable(By.ID, answer).click()
+                    element = self.webdriver.find_element(By.ID, answer)
+                    self.browser.utils.click(element)
             elif numberOfOptions in [2, 3, 4]:
                 correctOption = self.webdriver.execute_script(
                     "return _w.rewardsQuizRenderInfo.correctAnswer"
@@ -75,7 +76,8 @@ class Activities:
                     ):
                         self.browser.utils.waitUntilClickable(
                             By.ID, f"rqAnswerOption{i}"
-                        ).click()
+                        )
+                        self.browser.utils.click(element)
                         break
 
     def completeABC(self):
@@ -88,10 +90,10 @@ class Activities:
             element = self.webdriver.find_element(
                 By.ID, f"questionOptionChoice{question}{randint(0, 2)}"
             )
-            element.click()
+            self.browser.utils.click(element)
             sleep(randint(10, 15))
             element = self.webdriver.find_element(By.ID, f"nextQuestionbtn{question}")
-            element.click()
+            self.browser.utils.click(element)
             sleep(randint(10, 15))
 
     def completeThisOrThat(self):
@@ -100,7 +102,7 @@ class Activities:
             TimeoutException
         ):  # Handles in case quiz was started in previous run
             startQuiz = self.browser.utils.waitUntilQuizLoads()
-            startQuiz.click()
+            self.browser.utils.click(startQuiz)
         self.browser.utils.waitUntilQuestionRefresh()
         for _ in range(10):
             correctAnswerCode = self.webdriver.execute_script(
@@ -114,7 +116,7 @@ class Activities:
             elif answer2Code == correctAnswerCode:
                 answerToClick = answer2
 
-            answerToClick.click()
+            self.browser.utils.click(answerToClick)
             sleep(randint(10, 15))
 
     def getAnswerAndCode(self, answerId: str) -> tuple[WebElement, str]:
@@ -158,13 +160,13 @@ class Activities:
             activityElement = self.browser.utils.waitUntilClickable(
                 By.XPATH, f'//*[contains(text(), "{activityTitle}")]', timeToWait=20
             )
-            activityElement.click()
+            self.browser.utils.click(activityElement)
             self.browser.utils.switchToNewTab()
             with contextlib.suppress(TimeoutException):
                 searchbar = self.browser.utils.waitUntilClickable(
                     By.ID, "sb_form_q", timeToWait=30
                 )
-                searchbar.click()
+                self.browser.utils.click(searchbar)
                 searchbar.clear()
             if activityTitle in CONFIG.activities.search:
                 searchbar.send_keys(CONFIG.activities.search[activityTitle])
