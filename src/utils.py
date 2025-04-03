@@ -207,6 +207,8 @@ DEFAULT_CONFIG: Config = Config(
                 "How's the economy?": "sp 500",
                 "Learn to cook a new recipe": "how cook pierogi",
                 "Learn a new recipe": "how cook pierogi",
+                "Learn song lyrics": "hook blues traveler lyrics",
+                "Lights, camera, action!": "lord of the rings movie",
                 "Let's watch that movie again!": "aliens movie",
                 "Plan a quick getaway": "flights nyc to paris",
                 "Prepare for the weather": "weather tomorrow",
