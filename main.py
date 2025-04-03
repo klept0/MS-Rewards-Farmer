@@ -2,10 +2,10 @@ import csv
 import json
 import logging
 import logging.config
-from logging import handlers
 import sys
 from datetime import datetime
 from enum import Enum, auto
+from logging import handlers
 
 from src import (
     Browser,

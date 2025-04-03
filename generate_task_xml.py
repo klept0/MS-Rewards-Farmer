@@ -1,7 +1,7 @@
+import datetime as dt
 import getpass
 import os
 import subprocess
-import datetime as dt
 from pathlib import Path
 
 # Get the directory of the script being run
