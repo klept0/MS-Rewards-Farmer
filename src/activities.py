@@ -130,8 +130,8 @@ class Activities:
         )
 
     def completeActivity(self, activity: dict) -> None:
+        activityTitle = cleanupActivityTitle(activity["title"])
         try:
-            activityTitle = cleanupActivityTitle(activity["title"])
             logging.debug(f"activityTitle={activityTitle}")
             if activity["complete"] or activity["pointProgressMax"] == 0:
                 logging.debug("Already done, returning")
@@ -141,43 +141,25 @@ class Activities:
                 assert activityTitle in CONFIG.activities.search, "Add activity title to search mapping in config"
                 return
             if activityTitle in CONFIG.activities.ignore:
-                logging.debug(f"Ignoring {activityTitle}")
+                logging.debug(f"Ignoring '{activityTitle}'")
                 return
             # Open the activity for the activity
-            if "puzzle" in activityTitle.lower():
-                logging.info(f"Skipping {activityTitle} because it's not supported")
+            if "puzzle" in activityTitle.lower() or "Windows search" == activityTitle:
+                logging.info(f"Skipping '{activityTitle}' because it's not supported")
                 return
-            if "Windows search" == activityTitle:
-                # for search in {"what time is it in dublin", "what is the weather"}:
-                #     pyautogui.press("win")
-                #     sleep(1)
-                #     pyautogui.write(search)
-                #     sleep(5)
-                #     pyautogui.press("enter")
-                #     sleep(5)
-                # pyautogui.hotkey("alt", "f4") # Close Edge
-                return
-            activityElement = self.browser.utils.waitUntilClickable(
-                By.XPATH, f'//*[contains(text(), "{activityTitle}")]', timeToWait=20
-            )
-            self.browser.utils.click(activityElement)
-            self.browser.utils.switchToNewTab()
-            with contextlib.suppress(TimeoutException):
+            self.webdriver.get(activity["destinationUrl"])
+            if activityTitle in CONFIG.activities.search:
                 searchbar = self.browser.utils.waitUntilClickable(
                     By.ID, "sb_form_q", timeToWait=30
                 )
                 self.browser.utils.click(searchbar)
                 searchbar.clear()
-            if activityTitle in CONFIG.activities.search:
                 searchbar.send_keys(CONFIG.activities.search[activityTitle])
                 sleep(2)
                 searchbar.submit()
             elif "poll" in activityTitle:
                 # Complete survey for a specific scenario
                 self.completeSurvey()
-            elif activity["promotionType"] == "urlreward":
-                # Complete search for URL reward
-                self.completeSearch()
             elif activity["promotionType"] == "quiz":
                 # Complete different types of quizzes based on point progress max
                 if activity["pointProgressMax"] == 10:
@@ -186,16 +168,10 @@ class Activities:
                     self.completeQuiz()
                 elif activity["pointProgressMax"] == 50:
                     self.completeThisOrThat()
-            else:
-                # Default to completing search
-                self.completeSearch()
-            logging.debug("Done")
+            logging.info(f"[ACTIVITY] '{activityTitle}' Done")
         except Exception:
-            logging.error(f"[ACTIVITY] Error doing {activityTitle}", exc_info=True)
+            logging.error(f"[ACTIVITY] Error doing '{activityTitle}'", exc_info=True)
             logging.debug(f"activity={activity}")
-            return
-        finally:
-            self.browser.utils.resetTabs()
         cooldown()
 
     def completeActivities(self):
