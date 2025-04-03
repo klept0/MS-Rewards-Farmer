@@ -181,13 +181,6 @@ class Browser:
                 "screenHeight": screenHeight,
                 "positionX": 0,
                 "positionY": 0,
-                "viewport": {
-                    "x": 0,
-                    "y": 0,
-                    "width": deviceWidth,
-                    "height": deviceHeight,
-                    "scale": 1,
-                },
             },
         )
 
