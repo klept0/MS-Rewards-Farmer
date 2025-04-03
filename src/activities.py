@@ -74,10 +74,10 @@ class Activities:
                         ).get_attribute("data-option")
                         == correctOption
                     ):
-                        self.browser.utils.waitUntilClickable(
+                        correctAnswer = self.browser.utils.waitUntilClickable(
                             By.ID, f"rqAnswerOption{i}"
                         )
-                        self.browser.utils.click(element)
+                        self.browser.utils.click(correctAnswer)
                         break
 
     def completeABC(self):
