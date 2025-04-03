@@ -139,7 +139,7 @@ class AppriseSummary(Enum):
 
 
 def executeBot(currentAccount):
-    logging.info(f"********************{currentAccount.email}********************")
+    logging.info(f"******************** {currentAccount.email} ********************")
 
     startingPoints: int | None = None
     accountPoints: int
