@@ -84,7 +84,7 @@ class Searches:
                     f"google_trends before load = {list(self.googleTrendsShelf.items())}"
                 )
                 trends = Trends()
-                trends = trends.trending_now(geo=CONFIG.browser.geolocation)[
+                trends = trends.trending_now(geo=self.browser.localeGeo)[
                     : desktopAndMobileRemaining.getTotal()
                 ]
                 for trend in trends:
