@@ -265,7 +265,7 @@ class Browser:
         if PREFER_BING_INFO:
             bingInfo = self.utils.getBingInfo()
         else:
-            bingInfo = self.utils.getDashboardData()
+            bingInfo = self.utils.getDashboardData(True)
         searchPoints = 1
         if PREFER_BING_INFO:
             counters = bingInfo["flyoutResult"]["userStatus"]["counters"]

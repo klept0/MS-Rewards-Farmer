@@ -162,13 +162,13 @@ def executeBot(currentAccount):
             with Searches(desktopBrowser) as searches:
                 searches.bingSearches()
 
-            goalPoints = utils.getGoalPoints()
+            goalPoints = utils.getGoalPoints(True)
             goalTitle = utils.getGoalTitle()
 
             remainingSearches = desktopBrowser.getRemainingSearches(
                 desktopAndMobile=True
             )
-            accountPoints = utils.getAccountPoints()
+            accountPoints = utils.getAccountPoints(True)
 
     if CONFIG.search.type in ("mobile", "both", None):
         with Browser(mobile=True, account=currentAccount) as mobileBrowser:
@@ -183,13 +183,13 @@ def executeBot(currentAccount):
             with Searches(mobileBrowser) as searches:
                 searches.bingSearches()
 
-            goalPoints = utils.getGoalPoints()
+            goalPoints = utils.getGoalPoints(True)
             goalTitle = utils.getGoalTitle()
 
             remainingSearches = mobileBrowser.getRemainingSearches(
                 desktopAndMobile=True
             )
-            accountPoints = utils.getAccountPoints()
+            accountPoints = utils.getAccountPoints(True)
 
     logging.info(
         f"[POINTS] You have earned {formatNumber(accountPoints - startingPoints)} points this run !"

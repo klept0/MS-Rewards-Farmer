@@ -183,7 +183,7 @@ class Activities:
         # todo Send one email for all accounts?
         if CONFIG.get("apprise.notify.incomplete-activity"):  # todo Use fancy new way
             incompleteActivities: list[str] = []
-            for activity in self.browser.utils.getActivities():  # Have to refresh
+            for activity in self.browser.utils.getActivities(True):  # Have to refresh
                 activityTitle = cleanupActivityTitle(activity["title"])
                 if (
                     activityTitle not in CONFIG.activities.ignore
