@@ -17,7 +17,7 @@ import psutil
 import requests
 import yaml
 from apprise import Apprise
-from requests import Session
+from requests import Session, JSONDecodeError
 from requests.adapters import HTTPAdapter
 from selenium.common import (
     ElementClickInterceptedException,
@@ -325,7 +325,12 @@ class Utils:
         assert response.status_code == requests.codes.ok  # pylint: disable=no-member
         # fixme Add more asserts
         # todo Add fallback to src.utils.Utils.getDashboardData (slower but more reliable)
-        return response.json()
+
+        try:
+            return response.json()
+        except JSONDecodeError:
+            logging.error(f"Failed to decode JSON response: {response.text}")
+            raise
 
     def isLoggedIn(self) -> bool:
         if self.getBingInfo()["isRewardsUser"]:  # faster, if it works
