@@ -366,6 +366,7 @@ class Utils:
         return self.getDashboardData()["userStatus"]["redeemGoal"]["title"]
 
     def tryDismissAllMessages(self) -> None:
+        print("Trying to dismiss all messages...")
         byValues = [
             (By.ID, "iLandingViewAction"),
             (By.ID, "iShowSkip"),
@@ -374,20 +375,16 @@ class Utils:
             (By.ID, "idSIButton9"),
             (By.ID, "bnp_btn_accept"),
             (By.ID, "acceptButton"),
-            (By.CSS_SELECTOR, ".dashboardPopUpPopUpSelectButton"),
+            (By.CLASS_NAME, "dashboardPopUpPopUpSelectButton"),
+            (By.CSS_SELECTOR, "#cookie-banner button:first-child"),
+            (By.CSS_SELECTOR, "#wcpConsentBannerCtrl button:first-child"),
         ]
-        for byValue in byValues:
-            dismissButtons = []
+        dismissButtons = []
+        for by, value in byValues:
             with contextlib.suppress(NoSuchElementException):
-                dismissButtons = self.webdriver.find_elements(
-                    by=byValue[0], value=byValue[1]
-                )
-            for dismissButton in dismissButtons:
-                dismissButton.click()
-        with contextlib.suppress(NoSuchElementException):
-            self.webdriver.find_element(By.ID, "cookie-banner").find_element(
-                By.TAG_NAME, "button"
-            ).click()
+                dismissButtons.append(*self.webdriver.find_elements(by=by, value=value))
+        for dismissButton in dismissButtons:
+            dismissButton.click()
 
     def switchToNewTab(self, timeToWait: float = 10, closeTab: bool = False) -> None:
         time.sleep(timeToWait)
