@@ -229,8 +229,7 @@ DEFAULT_CONFIG: Config = Config(
             "format": "%(asctime)s [%(levelname)s] %(message)s",
             "level": "INFO",
         },
-        # todo Rename base-delay-in-seconds to backoff-factor (more common usage)
-        "retries": {"base-delay-in-seconds": 120, "max": 4, "strategy": "EXPONENTIAL"},
+        "retries": {"backoff-factor": 120, "max": 4, "strategy": "EXPONENTIAL"},
         "cooldown": {"min": 300, "max": 600},
         "search": {"type": "both"},
         "accounts": [],
@@ -317,7 +316,7 @@ class Utils:
     def getBingInfo(self) -> Any:
         session = makeRequestsSession()
         retries = CONFIG.retries.max
-        backoff_factor = CONFIG.get("retries.base-delay-in-seconds")
+        backoff_factor = CONFIG.get("retries.backoff-factor")
 
         for cookie in self.webdriver.get_cookies():
             session.cookies.set(cookie["name"], cookie["value"])
@@ -719,7 +718,7 @@ def saveBrowserConfig(sessionPath: Path, config: dict) -> None:
 def makeRequestsSession(session: Session = requests.session()) -> Session:
     retry = Retry(
         total=CONFIG.retries.max,
-        backoff_factor=CONFIG.get("retries.base-delay-in-seconds"),
+        backoff_factor=CONFIG.get("retries.backoff-factor"),
         status_forcelist=[
             500,
             502,

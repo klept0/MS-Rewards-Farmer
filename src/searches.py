@@ -20,11 +20,11 @@ class RetriesStrategy(Enum):
 
     EXPONENTIAL = auto()
     """
-    an exponentially increasing `base-delay-in-seconds` between attempts
+    an exponentially increasing `backoff-factor` between attempts
     """
     CONSTANT = auto()
     """
-    the default; a constant `base-delay-in-seconds` between attempts
+    the default; a constant `backoff-factor` between attempts
     """
 
 
@@ -37,7 +37,7 @@ class Searches:
     """
     the max amount of retries to attempt
     """
-    baseDelay: Final[float] = CONFIG.get("retries.base-delay-in-seconds")
+    baseDelay: Final[float] = CONFIG.get("retries.backoff-factor")
     """
     how many seconds to delay
     """

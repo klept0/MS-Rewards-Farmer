@@ -150,7 +150,7 @@ logging:
   level: INFO # Set to DEBUG, WARNING, ERROR or CRITICAL to change the level of displayed information in the terminal
     # See https://docs.python.org/3/library/logging.html#logging-levels. Can be overridden with command-line arguments.
 retries:
-  base-delay-in-seconds: 120 # The base wait time between each retries. Multiplied by two each try.
+  backoff-factor: 120 # The base wait time between each retries. Multiplied by two each try.
   max: 4 # The maximal number of retries to do
   strategy: EXPONENTIAL # Set it to CONSTANT to use the same delay between each retries.
     # Else, increase it exponentially each time.
