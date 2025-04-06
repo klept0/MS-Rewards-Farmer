@@ -229,6 +229,7 @@ DEFAULT_CONFIG: Config = Config(
             "format": "%(asctime)s [%(levelname)s] %(message)s",
             "level": "INFO",
         },
+        # todo Rename base-delay-in-seconds to backoff-factor (more common usage)
         "retries": {"base-delay-in-seconds": 120, "max": 4, "strategy": "EXPONENTIAL"},
         "cooldown": {"min": 300, "max": 600},
         "search": {"type": "both"},
@@ -313,24 +314,29 @@ class Utils:
     def getActivities(self) -> list[dict]:
         return self.getDailySetPromotions() + self.getMorePromotions()
 
-    # Not reliable
     def getBingInfo(self) -> Any:
         session = makeRequestsSession()
+        retries = CONFIG.retries.max
+        backoff_factor = CONFIG.get("retries.base-delay-in-seconds")
 
         for cookie in self.webdriver.get_cookies():
             session.cookies.set(cookie["name"], cookie["value"])
 
-        response = session.get("https://www.bing.com/rewards/panelflyout/getuserinfo")
-
-        assert response.status_code == requests.codes.ok  # pylint: disable=no-member
-        # fixme Add more asserts
-        # todo Add fallback to src.utils.Utils.getDashboardData (slower but more reliable)
-
-        try:
-            return response.json()
-        except JSONDecodeError:
-            logging.error(f"Failed to decode JSON response: {response.text}")
-            raise
+        for attempt in range(retries):
+            try:
+                response = session.get("https://www.bing.com/rewards/panelflyout/getuserinfo")
+                assert response.status_code == requests.codes.ok  # pylint: disable=no-member
+                return response.json()
+            except (JSONDecodeError, AssertionError) as e:
+                logging.error(f"Attempt {attempt + 1} failed: {e}")
+                if attempt < retries - 1:
+                    sleep_time = backoff_factor * (2 ** attempt)
+                    logging.info(f"Retrying in {sleep_time} seconds...")
+                    time.sleep(sleep_time)
+                else:
+                    # noinspection PyUnboundLocalVariable
+                    logging.debug(response)
+                    raise
 
     def isLoggedIn(self) -> bool:
         if self.getBingInfo()["isRewardsUser"]:  # faster, if it works
@@ -713,7 +719,7 @@ def saveBrowserConfig(sessionPath: Path, config: dict) -> None:
 def makeRequestsSession(session: Session = requests.session()) -> Session:
     retry = Retry(
         total=CONFIG.retries.max,
-        backoff_factor=1,
+        backoff_factor=CONFIG.get("retries.base-delay-in-seconds"),
         status_forcelist=[
             500,
             502,
