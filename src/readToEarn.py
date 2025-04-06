@@ -6,7 +6,6 @@ import time
 from requests_oauthlib import OAuth2Session
 
 from src.browser import Browser
-from .activities import Activities
 from .utils import makeRequestsSession, cooldown
 
 # todo Use constant naming style
@@ -25,7 +24,6 @@ class ReadToEarn:
     def __init__(self, browser: Browser):
         self.browser = browser
         self.webdriver = browser.webdriver
-        self.activities = Activities(browser)
 
     def completeReadToEarn(self):
 
@@ -52,7 +50,7 @@ class ReadToEarn:
             time.sleep(1)
 
         logging.info("[READ TO EARN] Logged-in successfully !")
-        token = mobileApp.fetch_token(
+        mobileApp.fetch_token(
             token_url, authorization_response=redirect_response, include_client_id=True
         )
         # Do Daily Check in

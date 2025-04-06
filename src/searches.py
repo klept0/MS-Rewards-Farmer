@@ -63,8 +63,6 @@ class Searches:
             f"[BING] Starting {self.browser.browserType.capitalize()} Edge Bing searches..."
         )
 
-        self.browser.utils.goToSearch()
-
         while True:
             desktopAndMobileRemaining = self.browser.getRemainingSearches(
                 desktopAndMobile=True
@@ -145,7 +143,7 @@ class Searches:
             sleep(1)
             searchbar.submit()
 
-            pointsAfter = self.browser.utils.getAccountPoints()
+            pointsAfter = self.browser.utils.getAccountPoints(True)
             if pointsBefore < pointsAfter:
                 del self.googleTrendsShelf[trend]
                 cooldown()

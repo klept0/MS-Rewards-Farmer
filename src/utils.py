@@ -285,33 +285,37 @@ class Utils:
 
         self.webdriver.switch_to.window(curr)
         time.sleep(0.5)
-        self.goToRewards()
+        self.goToRewards(True)
 
-    def goToRewards(self) -> None:
+    def goToRewards(self, forceRefresh=False) -> None:
+        if self.webdriver.current_url == REWARDS_URL and not forceRefresh:
+            return
         self.webdriver.get(REWARDS_URL)
         assert (
             self.webdriver.current_url == REWARDS_URL
         ), f"{self.webdriver.current_url} {REWARDS_URL}"
 
-    def goToSearch(self) -> None:
+    def goToSearch(self, forceRefresh=False) -> None:
+        if self.webdriver.current_url == SEARCH_URL and not forceRefresh:
+            return
         self.webdriver.get(SEARCH_URL)
 
     # Prefer getBingInfo if possible
-    def getDashboardData(self) -> dict:
-        self.goToRewards()
+    def getDashboardData(self, forceRefresh=False) -> dict:
+        self.goToRewards(forceRefresh)
         time.sleep(5)  # fixme Avoid busy wait (if this works)
         return self.webdriver.execute_script("return dashboard")
 
-    def getDailySetPromotions(self) -> list[dict]:
-        return self.getDashboardData()["dailySetPromotions"][
+    def getDailySetPromotions(self, forceRefresh=False) -> list[dict]:
+        return self.getDashboardData(forceRefresh)["dailySetPromotions"][
             date.today().strftime("%m/%d/%Y")
         ]
 
-    def getMorePromotions(self) -> list[dict]:
-        return self.getDashboardData()["morePromotions"]
+    def getMorePromotions(self, forceRefresh=False) -> list[dict]:
+        return self.getDashboardData(forceRefresh)["morePromotions"]
 
-    def getActivities(self) -> list[dict]:
-        return self.getDailySetPromotions() + self.getMorePromotions()
+    def getActivities(self, forceRefresh=False) -> list[dict]:
+        return self.getDailySetPromotions(forceRefresh) + self.getMorePromotions()
 
     def getBingInfo(self) -> Any:
         session = makeRequestsSession()
@@ -350,20 +354,20 @@ class Utils:
             return True
         return False
 
-    def getAccountPoints(self) -> int:
+    def getAccountPoints(self, forceRefresh=False) -> int:
         if PREFER_BING_INFO:
             return self.getBingInfo()["userInfo"]["balance"]
-        return self.getDashboardData()["userStatus"]["availablePoints"]
+        return self.getDashboardData(forceRefresh)["userStatus"]["availablePoints"]
 
-    def getGoalPoints(self) -> int:
+    def getGoalPoints(self, forceRefresh=False) -> int:
         if PREFER_BING_INFO:
             return self.getBingInfo()["flyoutResult"]["userGoal"]["price"]
-        return self.getDashboardData()["userStatus"]["redeemGoal"]["price"]
+        return self.getDashboardData(forceRefresh)["userStatus"]["redeemGoal"]["price"]
 
-    def getGoalTitle(self) -> str:
+    def getGoalTitle(self, forceRefresh=False) -> str:
         if PREFER_BING_INFO:
             return self.getBingInfo()["flyoutResult"]["userGoal"]["title"]
-        return self.getDashboardData()["userStatus"]["redeemGoal"]["title"]
+        return self.getDashboardData(forceRefresh)["userStatus"]["redeemGoal"]["title"]
 
     def tryDismissAllMessages(self) -> None:
         byValues = [

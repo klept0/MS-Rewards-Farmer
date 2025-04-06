@@ -181,13 +181,6 @@ class Browser:
                 "screenHeight": screenHeight,
                 "positionX": 0,
                 "positionY": 0,
-                "viewport": {
-                    "x": 0,
-                    "y": 0,
-                    "width": deviceWidth,
-                    "height": deviceHeight,
-                    "scale": 1,
-                },
             },
         )
 
@@ -272,7 +265,7 @@ class Browser:
         if PREFER_BING_INFO:
             bingInfo = self.utils.getBingInfo()
         else:
-            bingInfo = self.utils.getDashboardData()
+            bingInfo = self.utils.getDashboardData(True)
         searchPoints = 1
         if PREFER_BING_INFO:
             counters = bingInfo["flyoutResult"]["userStatus"]["counters"]
