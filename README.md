@@ -36,6 +36,11 @@
    pip install -r requirements.txt
    ```
 
+   Or, if developing or running tests, install the dev requirements with:
+   ```sh
+    pip install -r requirements-dev.txt
+   ```
+
    Upgrade all required with the following command:
    `pip install --upgrade -r requirements.txt`
 
