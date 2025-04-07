@@ -5,11 +5,8 @@ from pathlib import Path
 from types import TracebackType
 from typing import Any, Type
 
-import ipapi
-import pycountry
 import seleniumwire.undetected_chromedriver as webdriver
 import undetected_chromedriver
-from ipapi.exceptions import RateLimited
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver.chrome.webdriver import WebDriver
 
@@ -21,7 +18,7 @@ from src.utils import (
     getBrowserConfig,
     getProjectRoot,
     saveBrowserConfig,
-    PREFER_BING_INFO,
+    PREFER_BING_INFO, LANGUAGE, COUNTRY,
 )
 
 
@@ -39,7 +36,7 @@ class Browser:
         self.email = account.email
         self.password = account.password
         self.totp = account.get("totp")
-        self.localeLang, self.localeGeo = self.getLanguageCountry()
+        self.localeLang, self.localeGeo = LANGUAGE, COUNTRY
         self.proxy = CONFIG.browser.proxy
         if not self.proxy and account.get("proxy"):
             self.proxy = account.proxy
@@ -220,54 +217,6 @@ class Browser:
         return sessionsDir
 
     @staticmethod
-    def getLanguageCountry() -> tuple[str, str]:
-        country = CONFIG.browser.geolocation
-        language = CONFIG.browser.language
-
-        if country and not isValidCountryCode(country):
-            logging.warning(
-                f"Invalid country code {country}, attempting to determine country code from IP"
-            )
-
-        ipapiLocation = None
-        if not country or not isValidCountryCode(country):
-            try:
-                ipapiLocation = ipapi.location()
-                country = ipapiLocation["country"]
-                regionCode = ipapiLocation["region_code"]
-                if regionCode:
-                    country = country + "-" + regionCode
-                assert isValidCountryCode(country)
-            except RateLimited:
-                logging.warning("Rate limited by ipapi")
-
-        if language and not isValidLanguageCode(language):
-            logging.warning(
-                f"Invalid language code {language}, attempting to determine language code from IP"
-            )
-
-        if not language or not isValidLanguageCode(language):
-            try:
-                if ipapiLocation is None:
-                    ipapiLocation = ipapi.location()
-                language = ipapiLocation["languages"].split(",")[0]
-                assert isValidLanguageCode(language)
-            except RateLimited:
-                logging.warning("Rate limited by ipapi")
-
-        if not language:
-            language = "en-US"
-            logging.warning(
-                f"Not able to figure language returning default: {language}"
-            )
-
-        if not country:
-            country = "US"
-            logging.warning(f"Not able to figure country returning default: {country}")
-
-        return language, country
-
-    @staticmethod
     def getChromeVersion() -> str:
         chrome_options = ChromeOptions()
         chrome_options.add_argument("--headless=new")
@@ -331,61 +280,3 @@ class Browser:
         if self.mobile:
             return remainingMobileSearches
         return remainingDesktopSearches
-
-
-def isValidCountryCode(countryCode: str) -> bool:
-    """
-    Verifies if the given country code is a valid alpha-2 code with or without a region.
-
-    Args:
-        countryCode (str): The country code to verify.
-
-    Returns:
-        bool: True if the country code is valid, False otherwise.
-    """
-    if "-" in countryCode:
-        country, region = countryCode.split("-")
-    else:
-        country = countryCode
-        region = None
-
-    # Check if the country part is a valid alpha-2 code
-    if not pycountry.countries.get(alpha_2=country):
-        return False
-
-    # If region is provided, check if it is a valid region code
-    if region and not pycountry.subdivisions.get(code=f"{country}-{region}"):
-        return False
-
-    return True
-
-
-def isValidLanguageCode(languageCode: str) -> bool:
-    """
-    Verifies if the given language code is a valid ISO 639-1 or ISO 639-3 code,
-    and optionally checks the region if provided.
-
-    Args:
-        languageCode (str): The language code to verify.
-
-    Returns:
-        bool: True if the language code is valid, False otherwise.
-    """
-    if "-" in languageCode:
-        language, region = languageCode.split("-")
-    else:
-        language = languageCode
-        region = None
-
-    # Check if the language part is a valid ISO 639-1 or ISO 639-3 code
-    if not (
-        pycountry.languages.get(alpha_2=language)
-        or pycountry.languages.get(alpha_3=language)
-    ):
-        return False
-
-    # If region is provided, check if it is a valid country code
-    if region and not pycountry.countries.get(alpha_2=region):
-        return False
-
-    return True

@@ -10,7 +10,7 @@ from selenium.webdriver.common.by import By
 from trendspy import Trends
 
 from src.browser import Browser
-from src.utils import CONFIG, getProjectRoot, cooldown
+from src.utils import CONFIG, getProjectRoot, cooldown, COUNTRY
 
 
 class RetriesStrategy(Enum):
@@ -84,7 +84,7 @@ class Searches:
                     f"google_trends before load = {list(self.googleTrendsShelf.items())}"
                 )
                 trends = Trends()
-                trends = trends.trending_now(geo=self.browser.localeGeo)[
+                trends = trends.trending_now(geo=COUNTRY)[
                     : desktopAndMobileRemaining.getTotal()
                 ]
                 for trend in trends:

@@ -9,13 +9,21 @@ from selenium.webdriver.remote.webelement import WebElement
 
 from src.browser import Browser
 from src.constants import REWARDS_URL
-from src.utils import CONFIG, APPRISE, getAnswerCode, cooldown
+from src.utils import (
+    CONFIG,
+    APPRISE,
+    getAnswerCode,
+    cooldown,
+    ACTIVITY_TITLES_TO_QUERIES,
+    IGNORED_ACTIVITIES,
+)
 
 
 class Activities:
     """
     Class to handle activities in MS Rewards.
     """
+
     def __init__(self, browser: Browser):
         self.browser = browser
         self.webdriver = browser.webdriver
@@ -138,9 +146,11 @@ class Activities:
                 return
             if activity["attributes"].get("is_unlocked", "True") != "True":
                 logging.debug("Activity locked, returning")
-                assert activityTitle in CONFIG.activities.search, "Add activity title to search mapping in config"
+                assert (
+                    activityTitle in ACTIVITY_TITLES_TO_QUERIES
+                ), "Add activity title to search mapping in config"
                 return
-            if activityTitle in CONFIG.activities.ignore:
+            if activityTitle in IGNORED_ACTIVITIES:
                 logging.debug(f"Ignoring {activityTitle}")
                 return
             # Open the activity for the activity
@@ -168,8 +178,8 @@ class Activities:
                 )
                 self.browser.utils.click(searchbar)
                 searchbar.clear()
-            if activityTitle in CONFIG.activities.search:
-                searchbar.send_keys(CONFIG.activities.search[activityTitle])
+            if activityTitle in ACTIVITY_TITLES_TO_QUERIES:
+                searchbar.send_keys(ACTIVITY_TITLES_TO_QUERIES[activityTitle])
                 sleep(2)
                 searchbar.submit()
             elif "poll" in activityTitle:
@@ -210,7 +220,7 @@ class Activities:
             for activity in self.browser.utils.getActivities():  # Have to refresh
                 activityTitle = cleanupActivityTitle(activity["title"])
                 if (
-                    activityTitle not in CONFIG.activities.ignore
+                    activityTitle not in IGNORED_ACTIVITIES
                     and activity["pointProgress"] < activity["pointProgressMax"]
                     and activity["attributes"].get("is_unlocked", "True") == "True"
                     # todo Add check whether activity was in original set, in case added in between

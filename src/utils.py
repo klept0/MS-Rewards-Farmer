@@ -1,4 +1,5 @@
 import contextlib
+import importlib
 import json
 import locale as pylocale
 import logging
@@ -11,12 +12,16 @@ from argparse import Namespace, ArgumentParser
 from copy import deepcopy
 from datetime import date
 from pathlib import Path
+from types import ModuleType
 from typing import Any, Self
 
 import psutil
+import pycountry
 import requests
 import yaml
 from apprise import Apprise
+from ipapi import ipapi
+from ipapi.exceptions import RateLimited
 from requests import Session, JSONDecodeError
 from requests.adapters import HTTPAdapter
 from selenium.common import (
@@ -185,46 +190,6 @@ DEFAULT_CONFIG: Config = Config(
             "proxy": None,
         },
         "rtfr": False,
-        "activities": {
-            "ignore": [
-                "Bing app search",
-                "Chrome extension search",
-                "Get 50 entries plus 1000 points!",
-                "Get 100 points with search bar",
-                "Safeguard your family's info",
-            ],
-            "search": {
-                "Black Friday shopping": "black friday deals",
-                "Discover open job roles": "jobs at microsoft",
-                "Expand your vocabulary": "define demure",
-                "Feeling symptoms?": "covid symptoms",
-                "Find deals on Bing": "65 inch tv deals",
-                "Find places to stay": "hotels rome italy",
-                "Find somewhere new to explore": "directions to new york",
-                "Gaming time": "vampire survivors video game",
-                "Get your shopping done faster": "new iphone",
-                "Houses near you": "apartments manhattan",
-                "How's the economy?": "sp 500",
-                "Learn to cook a new recipe": "how cook pierogi",
-                "Learn a new recipe": "how cook pierogi",
-                "Learn song lyrics": "hook blues traveler lyrics",
-                "Lights, camera, action!": "lord of the rings fellowship of the bing",
-                "Let's watch that movie again!": "aliens movie",
-                "Plan a quick getaway": "flights nyc to paris",
-                "Prepare for the weather": "weather tomorrow",
-                "Quickly convert your money": "convert 374 usd to yen",
-                "Search the lyrics of a song": "black sabbath supernaut lyrics",
-                "Stay on top of the elections": "election news latest",
-                "Too tired to cook tonight?": "Pizza Hut near me",
-                "Too tired to cook?": "Pizza Hut near me",
-                "Translate anything": "translate pencil sharpener to spanish",
-                "What time is it?": "china time",
-                "What's for Thanksgiving dinner?": "pumpkin pie recipe",
-                "Who won?": "braves score",
-                "You can track your package": "usps tracking",
-                "Quickly convert money": "usd to euro",
-            },
-        },
         "logging": {
             "format": "%(asctime)s [%(levelname)s] %(message)s",
             "level": "INFO",
@@ -323,13 +288,17 @@ class Utils:
 
         for attempt in range(retries):
             try:
-                response = session.get("https://www.bing.com/rewards/panelflyout/getuserinfo")
-                assert response.status_code == requests.codes.ok  # pylint: disable=no-member
+                response = session.get(
+                    "https://www.bing.com/rewards/panelflyout/getuserinfo"
+                )
+                assert (
+                    response.status_code == requests.codes.ok
+                )  # pylint: disable=no-member
                 return response.json()
             except (JSONDecodeError, AssertionError) as e:
                 logging.error(f"Attempt {attempt + 1} failed: {e}")
                 if attempt < retries - 1:
-                    sleep_time = backoff_factor * (2 ** attempt)
+                    sleep_time = backoff_factor * (2**attempt)
                     logging.info(f"Retrying in {sleep_time} seconds...")
                     time.sleep(sleep_time)
                 else:
@@ -741,5 +710,123 @@ def cooldown() -> None:
     time.sleep(cooldownTime)
 
 
+def isValidCountryCode(countryCode: str) -> bool:
+    """
+    Verifies if the given country code is a valid alpha-2 code with or without a region.
+
+    Args:
+        countryCode (str): The country code to verify.
+
+    Returns:
+        bool: True if the country code is valid, False otherwise.
+    """
+    if "-" in countryCode:
+        country, region = countryCode.split("-")
+    else:
+        country = countryCode
+        region = None
+
+    # Check if the country part is a valid alpha-2 code
+    if not pycountry.countries.get(alpha_2=country):
+        return False
+
+    # If region is provided, check if it is a valid region code
+    if region and not pycountry.subdivisions.get(code=f"{country}-{region}"):
+        return False
+
+    return True
+
+
+def isValidLanguageCode(languageCode: str) -> bool:
+    """
+    Verifies if the given language code is a valid ISO 639-1 or ISO 639-3 code,
+    and optionally checks the region if provided.
+
+    Args:
+        languageCode (str): The language code to verify.
+
+    Returns:
+        bool: True if the language code is valid, False otherwise.
+    """
+    if "-" in languageCode:
+        language, region = languageCode.split("-")
+    else:
+        language = languageCode
+        region = None
+
+    # Check if the language part is a valid ISO 639-1 or ISO 639-3 code
+    if not (
+        pycountry.languages.get(alpha_2=language)
+        or pycountry.languages.get(alpha_3=language)
+    ):
+        return False
+
+    # If region is provided, check if it is a valid country code
+    if region and not pycountry.countries.get(alpha_2=region):
+        return False
+
+    return True
+
+
+def getLanguageCountry() -> tuple[str, str]:
+    country = CONFIG.browser.geolocation
+    language = CONFIG.browser.language
+
+    if country and not isValidCountryCode(country):
+        logging.warning(
+            f"Invalid country code {country}, attempting to determine country code from IP"
+        )
+
+    ipapiLocation = None
+    if not country or not isValidCountryCode(country):
+        try:
+            ipapiLocation = ipapi.location()
+            country = ipapiLocation["country"]
+            regionCode = ipapiLocation["region_code"]
+            if regionCode:
+                country = country + "-" + regionCode
+            assert isValidCountryCode(country)
+        except RateLimited:
+            logging.warning("Rate limited by ipapi")
+
+    if language and not isValidLanguageCode(language):
+        logging.warning(
+            f"Invalid language code {language}, attempting to determine language code from IP"
+        )
+
+    if not language or not isValidLanguageCode(language):
+        try:
+            if ipapiLocation is None:
+                ipapiLocation = ipapi.location()
+            language = ipapiLocation["languages"].split(",")[0]
+            assert isValidLanguageCode(language)
+        except RateLimited:
+            logging.warning("Rate limited by ipapi")
+
+    if not language:
+        language = "en-US"
+        logging.warning(f"Not able to figure language returning default: {language}")
+
+    if not country:
+        country = "US"
+        logging.warning(f"Not able to figure country returning default: {country}")
+
+    return language, country
+
+
+def load_localized_activities(language: str) -> ModuleType:
+    try:
+        search_module = importlib.import_module(f"localized_activities.{language}")
+        return search_module
+    except ModuleNotFoundError:
+        raise FileNotFoundError(f"No search queries found for language: {language}")
+
+
 CONFIG = loadConfig()
 APPRISE = initApprise()
+LANGUAGE, COUNTRY = getLanguageCountry()
+localized_activities = load_localized_activities(
+    LANGUAGE.split("-")[0] if "-" in LANGUAGE else LANGUAGE
+)
+ACTIVITY_TITLES_TO_QUERIES = localized_activities.title_to_query
+IGNORED_ACTIVITIES = localized_activities.ignore

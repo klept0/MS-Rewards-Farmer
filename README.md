@@ -124,33 +124,6 @@ browser:
     # Override per-account proxies. Can be overridden with command-line arguments.
 rtfr: true # If true, display the "read the readme" message at the start of the script and prevent the script
   # from running. Default is false.
-activities:
-  ignore: # list of activities to ignore, like activities that can't be completed
-    - Get 50 entries plus 1000 points!
-    - Safeguard your family's info
-  search: # list of searches to do for search-based activities
-    "Black Friday shopping": black friday deals
-    "Discover open job roles": jobs at microsoft
-    "Expand your vocabulary": define demure
-    "Find places to stay": hotels rome italy
-    "Find somewhere new to explore": directions to new york
-    "Gaming time": vampire survivors video game
-    "Get your shopping done faster": new iphone
-    "Houses near you": apartments manhattan
-    "How's the economy?": sp 500
-    "Learn to cook a new recipe": how cook pierogi
-    "Let's watch that movie again!": aliens movie
-    "Plan a quick getaway": flights nyc to paris
-    "Prepare for the weather": weather tomorrow
-    "Quickly convert your money": convert 374 usd to yen
-    "Search the lyrics of a song": black sabbath supernaut lyrics
-    "Stay on top of the elections": election news latest
-    "Too tired to cook tonight?": Pizza Hut near me
-    "Translate anything": translate pencil sharpener to spanish
-    "What time is it?": china time
-    "What's for Thanksgiving dinner?": pumpkin pie recipe
-    "Who won?": braves score
-    "You can track your package": usps tracking
 logging:
   level: INFO # Set to DEBUG, WARNING, ERROR or CRITICAL to change the level of displayed information in the terminal
     # See https://docs.python.org/3/library/logging.html#logging-levels. Can be overridden with command-line arguments.
