@@ -146,9 +146,9 @@ class Activities:
                 return
             if activity["attributes"].get("is_unlocked", "True") != "True":
                 logging.debug("Activity locked, returning")
-                assert (
-                    activityTitle in ACTIVITY_TITLES_TO_QUERIES
-                ), "Add activity title to search mapping in config"
+                if activityTitle not in ACTIVITY_TITLES_TO_QUERIES:
+                    logging.warning(
+                        f"Add activity title '{activityTitle}' to search mapping in relevant language file in localized_activities")
                 return
             if activityTitle in IGNORED_ACTIVITIES:
                 logging.debug(f"Ignoring {activityTitle}")
