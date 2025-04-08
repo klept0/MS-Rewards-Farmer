@@ -366,7 +366,6 @@ class Utils:
         return self.getDashboardData()["userStatus"]["redeemGoal"]["title"]
 
     def tryDismissAllMessages(self) -> None:
-        print("Trying to dismiss all messages...")
         byValues = [
             (By.ID, "iLandingViewAction"),
             (By.ID, "iShowSkip"),
@@ -382,7 +381,7 @@ class Utils:
         dismissButtons = []
         for by, value in byValues:
             with contextlib.suppress(NoSuchElementException):
-                dismissButtons.append(*self.webdriver.find_elements(by=by, value=value))
+                dismissButtons.extend(self.webdriver.find_elements(by=by, value=value))
         for dismissButton in dismissButtons:
             dismissButton.click()
 
