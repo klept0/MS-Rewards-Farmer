@@ -75,7 +75,7 @@
    ```
 
    (Windows Only) You can also run the script wrapper that will detect your python installation
-   and re-run the script if it crashes using `.\MsReward.ps1` (`.\MsReward.ps1 -help` for more
+   and re-run the script if it crashes using `.\run.ps1` (`.\run.ps1 -help` for more
    information). To allow script execution without confirmation, use the following command:
    `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser`.
 

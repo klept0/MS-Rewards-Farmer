@@ -6,7 +6,7 @@ from pathlib import Path
 
 # Get the directory of the script being run
 script_dir = Path(__file__).parent.resolve()
-script_path = script_dir / "MsReward.ps1"
+script_path = script_dir / "run.ps1"
 
 # Get the current user's name
 current_user = getpass.getuser()

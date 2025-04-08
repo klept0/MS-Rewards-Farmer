@@ -40,7 +40,7 @@ Write-Host "> Entering $scriptDir" -ForegroundColor "Green"
 Set-Location $scriptDir
 
 if ($help) {
-    Write-Host "Usage: .\MsReward.ps1 [-h] [-u] [-d] [-r <int>] [-a <string>] [-p <string>] [-s <string>] [-c <string>]"
+    Write-Host "Usage: .\run.ps1 [-h] [-u] [-d] [-r <int>] [-a <string>] [-p <string>] [-s <string>] [-c <string>]"
     Write-Host ""
     Write-Host "Options:"
     Write-Host "  -h, -help"
