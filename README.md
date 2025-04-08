@@ -109,37 +109,37 @@ apprise: # 'apprise' is the name of the service used for notifications https://g
     uncaught-exception: true # set it to false to disable notifications for uncaught exceptions
     login-code: true # set it to false to disable notifications for the temporary M$ Authenticator login code
   summary: ON_ERROR # set it to ALWAYS to always receive a summary about your points progression or errors, or to 
-    # NEVER to never receive a summary, even in case of an error. 
+  # NEVER to never receive a summary, even in case of an error. 
   urls: # add apprise urls here to receive notifications on the specified services :
     # https://github.com/caronc/apprise#supported-notifications
     # Empty by default.
     - discord://{WebhookID}/{WebhookToken} # Exemple url 
 browser:
   geolocation: US # Replace with your country code https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2.
-    # Detected by default, can be overridden with command-line arguments.
+  # Detected by default, can be overridden with command-line arguments.
   language: en # Replace with your language code https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes.
-    # Detected by default, can be overridden with command-line arguments.
+  # Detected by default, can be overridden with command-line arguments.
   visible: false # set it to true to show the browser window, can be overridden with command-line arguments.
   proxy: null # set the global proxy using the 'http://user:pass@host:port' syntax.
-    # Override per-account proxies. Can be overridden with command-line arguments.
+  # Override per-account proxies. Can be overridden with command-line arguments.
 rtfr: true # If true, display the "read the readme" message at the start of the script and prevent the script
-  # from running. Default is false.
+# from running. Default is false.
 logging:
   level: INFO # Set to DEBUG, WARNING, ERROR or CRITICAL to change the level of displayed information in the terminal
-    # See https://docs.python.org/3/library/logging.html#logging-levels. Can be overridden with command-line arguments.
+  # See https://docs.python.org/3/library/logging.html#logging-levels. Can be overridden with command-line arguments.
 retries:
   backoff-factor: 120 # The base wait time between each retries. Multiplied by two each try.
   max: 4 # The maximal number of retries to do
   strategy: EXPONENTIAL # Set it to CONSTANT to use the same delay between each retries.
-    # Else, increase it exponentially each time.
+  # Else, increase it exponentially each time.
 cooldown:
   min: 300 # The minimal wait time between two searches/activities
   max: 600 # The maximal wait time between two searches/activities
 search:
   type: both # Set it to 'mobile' or 'desktop' to only complete searches on one plateform,
-    # can be overridden with command-line arguments.
+  # can be overridden with command-line arguments.
 accounts: # The accounts to use. You can put zero, one or an infinite number of accounts here.
-    # Empty by default, can be overridden with command-line arguments.
+  # Empty by default, can be overridden with command-line arguments.
   - email: Your Email 1 # replace with your email
     password: Your Password 1 # replace with your password
     totp: 0123 4567 89ab cdef # replace with your totp, or remove it
