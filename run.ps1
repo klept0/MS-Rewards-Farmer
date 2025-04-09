@@ -20,8 +20,8 @@ param (
     [Alias('r', 'retries')][int]$maxAttempts = 1,
     [Alias('a', 'args')][string]$arguments = "",
     [Alias('p', 'python')][string]$pythonPath = "",
-    [Alias('s', 'script')][string]$scriptDir = "",
-    [Alias('c', 'cache')][string]$sessions = ".\sessions"
+    [Alias('sc', 'script')][string]$scriptDir = "",
+    [Alias('se', 'sessions')][string]$sessions = ".\sessions"
 )
 
 $name = "MS Rewards Farmer"
@@ -47,17 +47,17 @@ if ($help) {
     Write-Host "      Display this help message."
     Write-Host "  -u, -update"
     Write-Host "      Update the script if a new version is available."
-    Write-Host "  -d, -noCacheDelete"
-    Write-Host "      Do not delete the cache folder if the script fails."
+    Write-Host "  -d, -deleteSessionsOnFail"
+    Write-Host "      Delete the cache folder if the script fails."
     Write-Host "  -r <int>, -retries <int>, -maxRetries <int>"
     Write-Host "      Maximum number of retries if the script fails (default: 3)."
     Write-Host "  -a <string>, -args <string>, -arguments <string>"
     Write-Host "      Arguments to pass to the main script (default: none)."
     Write-Host "  -p <string>, -python <string>, -pythonPath <string>"
     Write-Host "      Path to the Python executable (default: detected)."
-    Write-Host "  -s <string>, -script <string>, -scriptDir <string>"
+    Write-Host "  -sc <string>, -script <string>, -scriptDir <string>"
     Write-Host "      Path to the main script directory (default: current directory)."
-    Write-Host "  -c <string>, -cache <string>, -cacheFolder <string>"
+    Write-Host "  -se <string>, -sessions <string>"
     Write-Host "      Folder to store the sessions (default: .\sessions)."
     exit 0
 }
