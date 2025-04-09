@@ -16,12 +16,12 @@
 param (
     [Alias('h')][switch]$help = $false,
     [Alias('u')][switch]$update = $false,
-    [Alias('d')][switch]$noCacheDelete = $true,
+    [Alias('d')][switch]$deleteSessionsOnFail = $false,
     [Alias('r', 'retries')][int]$maxAttempts = 1,
     [Alias('a', 'args')][string]$arguments = "",
     [Alias('p', 'python')][string]$pythonPath = "",
     [Alias('s', 'script')][string]$scriptDir = "",
-    [Alias('c', 'cache')][string]$cacheFolder = ".\sessions"
+    [Alias('c', 'cache')][string]$sessions = ".\sessions"
 )
 
 $name = "MS Rewards Farmer"
@@ -138,6 +138,8 @@ if ($updated) {
 
 function Invoke-Farmer {
     for ($i = 1; $i -le $maxAttempts; $i++) {
+        Stop-Process -Name "undetected_chromedriver" -ErrorAction SilentlyContinue
+        Get-Process -Name "chrome" -ErrorAction SilentlyContinue | Where-Object { $_.StartTime -gt $startTime } | Stop-Process -ErrorAction SilentlyContinue
         if ($arguments) {
             & $pythonPath "main.py" $arguments
         } else {
@@ -148,18 +150,16 @@ function Invoke-Farmer {
             exit 0
         }
         Write-Host "> $name failed (Attempt $i/$maxAttempts) with exit code $LastExitCode." -ForegroundColor "Green"
-        Stop-Process -Name "undetected_chromedriver" -ErrorAction SilentlyContinue
-        Get-Process -Name "chrome" -ErrorAction SilentlyContinue | Where-Object { $_.StartTime -gt $startTime } | Stop-Process -ErrorAction SilentlyContinue
     }
 }
 
 Invoke-Farmer
 
-if (-not $noCacheDelete) {
+if ($deleteSessionsOnFail) {
     Write-Host "> All $name runs failed ($maxAttempts/$maxAttempts). Removing cache and re-trying..." -ForegroundColor "Green"
 
-    if (Test-Path "$cacheFolder") {
-        Remove-Item -Recurse -Force "$cacheFolder" -ErrorAction SilentlyContinue
+    if (Test-Path "$sessions") {
+        Remove-Item -Recurse -Force "$sessions" -ErrorAction SilentlyContinue
     }
 
     Invoke-Farmer
