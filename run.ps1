@@ -1,9 +1,9 @@
 # ----------------------------- Script description -----------------------------
 # This script is a wrapper for the "MS Rewards Farmer" python script, which is
 # a tool to automate the Microsoft Rewards daily tasks. The script will try to
-# update the main script, detect the Python installation, run the main script
-# and retry if it fails, while cleaning every error-prone elements (sessions,
-# orphan chrome instances, etc.).
+# update the main script, detect the Python installation, stop orphan chrome
+# instances, run the main script and retry if it fails (optionally cleaning
+# every error-prone sessions).
 
 # Use the `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` command to allow
 # script execution in PowerShell without confirmation each time.
