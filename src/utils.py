@@ -814,6 +814,8 @@ def getLanguageCountry() -> tuple[str, str]:
     return language, country
 
 
+# todo Could remove this functionality in favor of https://pypi.org/project/translate/
+# That's assuming all activity titles are in English
 def load_localized_activities(language: str) -> ModuleType:
     try:
         search_module = importlib.import_module(f"localized_activities.{language}")
