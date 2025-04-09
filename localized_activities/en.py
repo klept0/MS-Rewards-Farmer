@@ -25,6 +25,7 @@ title_to_query = {
     "Translate anything": "translate pencil sharpener to spanish",
     "What time is it?": "china time",
     "What's for Thanksgiving dinner?": "pumpkin pie recipe",
+    "What's new?": "latest news",
     "Who won?": "braves score",
     "You can track your package": "usps tracking",
     "Quickly convert money": "usd to euro",
