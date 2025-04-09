@@ -21,7 +21,7 @@ param (
     [Alias('a', 'args')][string]$arguments = "",
     [Alias('p', 'python')][string]$pythonPath = "",
     [Alias('sc', 'script')][string]$scriptDir = "",
-    [Alias('se', 'sessions')][string]$sessions = ".\sessions"
+    [Alias('se')][string]$sessions = ".\sessions"
 )
 
 $name = "MS Rewards Farmer"
