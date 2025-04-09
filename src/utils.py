@@ -296,7 +296,7 @@ class Utils:
                 )  # pylint: disable=no-member
                 return response.json()
             except (JSONDecodeError, AssertionError) as e:
-                logging.error(f"Attempt {attempt + 1} failed: {e}")
+                logging.info(f"Attempt {attempt + 1} failed: {e}")
                 if attempt < retries - 1:
                     sleep_time = backoff_factor * (2**attempt)
                     logging.info(f"Retrying in {sleep_time} seconds...")
