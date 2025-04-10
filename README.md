@@ -31,6 +31,8 @@
 
 ## Installation
 
+[//]: # (todo - add Docker installation instructions)
+
 1. Create a virtual environment using `venv`:
    ```sh
    python -m venv venv
