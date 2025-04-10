@@ -31,7 +31,25 @@
 
 ## Installation
 
-1. Install requirements with the following command :
+1. Create a virtual environment using `venv`:
+   ```sh
+   python -m venv venv
+   ```
+2. Activate the virtual environment:
+
+   * On Windows:
+
+   ```sh
+   venv\Scripts\activate
+   ```
+
+   * On macOS/Linux:
+
+   ```sh
+   source venv/bin/activate
+   ```
+
+3. Install requirements with the following command :
    ```sh
    pip install -r requirements.txt
    ```
@@ -44,20 +62,20 @@
    Upgrade all required with the following command:
    `pip install --upgrade -r requirements.txt`
 
-2. Make sure you have Chrome installed
+4. Make sure you have Chrome installed
 
-3. (Windows Only) Make sure Visual C++ redistributable DLLs are installed
+5. (Windows Only) Make sure Visual C++ redistributable DLLs are installed
 
    If they're not, install the current "vc_redist.exe" from
    this [link](https://learn.microsoft.com/en-GB/cpp/windows/latest-supported-vc-redist?view=msvc-170)
    and reboot your computer
 
-4. Run the script with the following arguments:
+6. Run the script with the following arguments:
    ```sh
    python main.py -C
    ```
 
-5. Open the generated `config.yaml` file and edit it with your information.
+7. Open the generated `config.yaml` file and edit it with your information.
 
    The "totp" field is not mandatory, only enter your TOTP key if you use it for 2FA (if
    ommitting, don't keep it as an empty string, remove the line completely).
@@ -69,7 +87,7 @@
 
    the "apprise.urls" field is not mandatory, you can remove it if you don't want to get notifications.
 
-6. Run the script:
+8. Run the script:
    ```sh
    python main.py
    ```
@@ -79,7 +97,7 @@
    information). To allow script execution without confirmation, use the following command:
    `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser`.
 
-7. (Windows Only) You can set up automatic execution by generating a Task Scheduler XML file.
+9. (Windows Only) You can set up automatic execution by generating a Task Scheduler XML file.
 
    If you are a Windows user, run the `generate_task_xml.py` script to create a `.xml` file.
    After generating the file, import it into Task Scheduler to schedule automatic execution of
