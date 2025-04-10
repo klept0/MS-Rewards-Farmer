@@ -2,10 +2,10 @@
 *
 
 # Allow files and directories
+!/localized_activities
 !/src
 !/main.py
 !/docker.sh
-!/config.yaml
 !/requirements.txt
 
 # Ignore unnecessary files inside allowed directories
