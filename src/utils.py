@@ -705,6 +705,10 @@ def makeRequestsSession(session: Session = requests.session()) -> Session:
 
 
 def cooldown() -> None:
+    if sys.gettrace():
+        logging.info("[DEBUGGER] Debugger is attached, skipping cooldown.")
+        return
+
     cooldownTime = random.randint(CONFIG.cooldown.min, CONFIG.cooldown.max)
     logging.info(f"[COOLDOWN] Waiting for {cooldownTime} seconds")
     time.sleep(cooldownTime)
