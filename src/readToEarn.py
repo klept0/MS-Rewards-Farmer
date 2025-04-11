@@ -43,9 +43,8 @@ class ReadToEarn:
         self.webdriver.get(authorization_url)
         while True:
             logging.info("[READ TO EARN] Waiting for Login")
-            if (
-                self.webdriver.current_url[:48]
-                == "https://login.live.com/oauth20_desktop.srf?code="
+            if self.webdriver.current_url.startswith(
+                "https://login.live.com/oauth20_desktop.srf?code="
             ):
                 redirect_response = self.webdriver.current_url
                 break
