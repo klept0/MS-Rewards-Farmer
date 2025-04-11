@@ -44,6 +44,7 @@ class Activities:
         ):  # Handles in case quiz was started in previous run
             startQuiz = self.browser.utils.waitUntilQuizLoads()
             self.browser.utils.click(startQuiz)
+        self.browser.utils.waitUntilVisible(By.ID, "overlayPanel", 5)
         maxQuestions = self.webdriver.execute_script(
             "return _w.rewardsQuizRenderInfo.maxQuestions"
         )
