@@ -830,8 +830,8 @@ def load_localized_activities(language: str) -> ModuleType:
         search_module = importlib.import_module(f"localized_activities.{language}")
         return search_module
     except ModuleNotFoundError:
-        raise FileNotFoundError(f"No search queries found for language: {language}")
-
+        logging.warning(f"No search queries found for language: {language}, defaulting to English (en)")
+        return importlib.import_module("localized_activities.en")
 
 CONFIG = loadConfig()
 APPRISE = initApprise()
