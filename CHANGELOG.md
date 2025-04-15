@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added country and language code validation functions and updated browser geolocation handling.
 - Added configuration options in `config.yaml` for activity handling and error notifications:
   - `apprise.notify.incomplete-activity` for incomplete activity notifications.
+  - `apprise.notify.login-code` for login with phone code notifications.
 - Added reset functionality to delete session files and terminate Chrome processes.
 - Added CODEOWNERS file for repository management.
 - Added Docker build for easier deployment and execution.
@@ -32,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved logging for activity completion, error reporting, and localization warnings.
 - Enhanced JSON response handling in `utils.py` and updated parameters in `run.ps1`.
 - Replaced `accounts.json` with account information now stored in `config.yaml` for better configuration management.
+- Adjusted cooldowns and wait times for better performance.
 
 ### Fixed
 
@@ -40,11 +42,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed activities containing non-breakable spaces in their names.
 - Fixed Google Trends API integration and improved trend keyword handling.
 - Fixed click handling in `activities.py` to use the correct answer element.
+- Fixed issue related to mobile search for level 1 users.
+- Fixed Apprise notification error.
+- Fixed exit code to return `exit 1` on errors instead of `exit 0`.
 
 ### Removed
 
 - Removed unused imports and deprecated classes for cleaner codebase.
 - Removed `MS_reward.bat` in favor of the more robust `run.ps1` script.
+- Removed `config-private.yaml` in favor of consolidating configurations into `config.yaml`.
+- Removed password logging.
+
+### Other
+
+- Added locked/banned user detection.
+- Skipped un-doable activities.
 
 ## [1.1.0] - 2024-08-30
 
