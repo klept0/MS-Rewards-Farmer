@@ -176,14 +176,17 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
 # Custom rules (everything added below won't be overridden by 'Generate .gitignore File' if you use 'Update' option)
 
-accounts.json
-sessions
-logs
-runbot.bat
-.DS_Store
-/google_trends.dat
-/google_trends.dir
-/google_trends.bak
-/config-private.yaml
+sessions/
+logs/
+/google_trends.*
+config.yaml
+MsReward.xml

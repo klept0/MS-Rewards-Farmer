@@ -1,51 +1,47 @@
-import argparse
 import csv
 import json
 import logging
 import logging.config
-import logging.handlers as handlers
-import random
-import re
 import sys
-import traceback
 from datetime import datetime
 from enum import Enum, auto
+from logging import handlers
 
 from src import (
     Browser,
     Login,
-    MorePromotions,
     PunchCards,
     Searches,
     ReadToEarn,
-    DailySet,
-    Account,
 )
+from src.activities import Activities
 from src.browser import RemainingSearches
 from src.loggingColoredFormatter import ColoredFormatter
-from src.utils import Utils
+from src.utils import CONFIG, APPRISE, getProjectRoot, formatNumber
 
 
 def main():
-    args = argumentParser()
-    Utils.args = args
     setupLogging()
-    loadedAccounts = setupAccounts()
 
     # Load previous day's points data
     previous_points_data = load_previous_points_data()
 
-    for currentAccount in loadedAccounts:
+    foundError = False
+
+    for currentAccount in CONFIG.accounts:
         try:
-            earned_points = executeBot(currentAccount, args)
+            earned_points = executeBot(currentAccount)
         except Exception as e1:
             logging.error("", exc_info=True)
-            Utils.sendNotification(
-                f"⚠️ Error executing {currentAccount.username}, please check the log",
-                traceback.format_exc(),
-            )
+            foundError = True
+            if CONFIG.get("apprise.notify.uncaught-exception"):
+                APPRISE.notify(
+                    f"{type(e1).__name__}: {e1}",
+                    f"⚠️ Error executing {currentAccount.email}, please check the log",
+                )
             continue
-        previous_points = previous_points_data.get(currentAccount.username, 0)
+
+        previous_points = previous_points_data.get(currentAccount.email, 0)
 
         # Calculate the difference in points from the prior day
         points_difference = earned_points - previous_points
@@ -54,19 +50,22 @@ def main():
         log_daily_points_to_csv(earned_points, points_difference)
 
         # Update the previous day's points data
-        previous_points_data[currentAccount.username] = earned_points
+        previous_points_data[currentAccount.email] = earned_points
 
         logging.info(
-            f"[POINTS] Data for '{currentAccount.username}' appended to the file."
+            f"[POINTS] Data for '{currentAccount.email}' appended to the file."
         )
 
     # Save the current day's points data for the next day in the "logs" folder
     save_previous_points_data(previous_points_data)
     logging.info("[POINTS] Data saved for the next day.")
 
+    if foundError:
+        sys.exit(1)
+
 
 def log_daily_points_to_csv(earned_points, points_difference):
-    logs_directory = Utils.getProjectRoot() / "logs"
+    logs_directory = getProjectRoot() / "logs"
     csv_filename = logs_directory / "points_data.csv"
 
     # Create a new row with the date, daily points, and points difference
@@ -80,7 +79,7 @@ def log_daily_points_to_csv(earned_points, points_difference):
     fieldnames = ["Date", "Earned Points", "Points Difference"]
     is_new_file = not csv_filename.exists()
 
-    with open(csv_filename, mode="a", newline="") as file:
+    with open(csv_filename, mode="a", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
 
         if is_new_file:
@@ -90,117 +89,34 @@ def log_daily_points_to_csv(earned_points, points_difference):
 
 
 def setupLogging():
-    _format = "%(asctime)s [%(levelname)s] %(message)s"
+    _format = CONFIG.logging.format
     terminalHandler = logging.StreamHandler(sys.stdout)
     terminalHandler.setFormatter(ColoredFormatter(_format))
+    terminalHandler.setLevel(logging.getLevelName(CONFIG.logging.level.upper()))
 
-    logs_directory = Utils.getProjectRoot() / "logs"
+    logs_directory = getProjectRoot() / "logs"
     logs_directory.mkdir(parents=True, exist_ok=True)
 
-    # so only our code is logged if level=logging.DEBUG or finer
-    # if not working see https://stackoverflow.com/a/48891485/4164390
-    logging.config.dictConfig(
-        {
+    fileHandler = handlers.TimedRotatingFileHandler(
+        logs_directory / "activity.log",
+        when="midnight",
+        backupCount=2,
+        encoding="utf-8",
+    )
+    fileHandler.namer = lambda name: name.replace('.log.', '-') + '.log'
+    fileHandler.setLevel(logging.DEBUG)
+
+    logging.config.dictConfig({
             "version": 1,
             "disable_existing_loggers": True,
-        }
-    )
+    })
+
     logging.basicConfig(
         level=logging.DEBUG,
         format=_format,
-        handlers=[
-            handlers.TimedRotatingFileHandler(
-                logs_directory / "activity.log",
-                when="midnight",
-                interval=1,
-                backupCount=2,
-                encoding="utf-8",
-            ),
-            terminalHandler,
-        ],
+        handlers=[fileHandler, terminalHandler],
+        force=True,
     )
-
-
-def argumentParser() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="MS Rewards Farmer")
-    parser.add_argument(
-        "-v", "--visible", action="store_true", help="Optional: Visible browser"
-    )
-    parser.add_argument(
-        "-l", "--lang", type=str, default=None, help="Optional: Language (ex: en)"
-    )
-    parser.add_argument(
-        "-g", "--geo", type=str, default=None, help="Optional: Geolocation (ex: US)"
-    )
-    parser.add_argument(
-        "-p",
-        "--proxy",
-        type=str,
-        default=None,
-        help="Optional: Global Proxy (ex: http://user:pass@host:port)",
-    )
-    parser.add_argument(
-        "-vn",
-        "--verbosenotifs",
-        action="store_true",
-        help="Optional: Send all the logs to the notification service",
-    )
-    parser.add_argument(
-        "-cv",
-        "--chromeversion",
-        type=int,
-        default=None,
-        help="Optional: Set fixed Chrome version (ex. 118)",
-    )
-    parser.add_argument(
-        "-da",
-        "--disable-apprise",
-        action="store_true",
-        help="Optional: Disable Apprise, overrides config.yaml, useful when developing",
-    )
-    parser.add_argument(
-        "-t",
-        "--searchtype",
-        type=str,
-        default=None,
-        help="Optional: Set to only search in either desktop or mobile (ex: 'desktop' or 'mobile')",
-    )
-    return parser.parse_args()
-
-
-def setupAccounts() -> list[Account]:
-    """Sets up and validates a list of accounts loaded from 'accounts.json'."""
-
-    def validEmail(email: str) -> bool:
-        """Validate Email."""
-        pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
-        return bool(re.match(pattern, email))
-
-    accountPath = Utils.getProjectRoot() / "accounts.json"
-    if not accountPath.exists():
-        accountPath.write_text(
-            json.dumps(
-                [{"username": "Your Email", "password": "Your Password"}], indent=4
-            ),
-            encoding="utf-8",
-        )
-        noAccountsNotice = """
-    [ACCOUNT] Accounts credential file "accounts.json" not found.
-    [ACCOUNT] A new file has been created, please edit with your credentials and save.
-    """
-        logging.warning(noAccountsNotice)
-        exit(1)
-    loadedAccounts: list[Account] = []
-    for rawAccount in json.loads(accountPath.read_text(encoding="utf-8")):
-        account: Account = Account(**rawAccount)
-        if not validEmail(account.username):
-            logging.warning(
-                f"[CREDENTIALS] Invalid email: {account.username}, skipping this account"
-            )
-            continue
-        loadedAccounts.append(account)
-    random.shuffle(loadedAccounts)
-    return loadedAccounts
 
 
 class AppriseSummary(Enum):
@@ -222,8 +138,8 @@ class AppriseSummary(Enum):
     """
 
 
-def executeBot(currentAccount: Account, args: argparse.Namespace):
-    logging.info(f"********************{currentAccount.username}********************")
+def executeBot(currentAccount):
+    logging.info(f"********************{currentAccount.email}********************")
 
     startingPoints: int | None = None
     accountPoints: int
@@ -231,18 +147,16 @@ def executeBot(currentAccount: Account, args: argparse.Namespace):
     goalTitle: str
     goalPoints: int
 
-    if args.searchtype in ("desktop", None):
-        with Browser(mobile=False, account=currentAccount, args=args) as desktopBrowser:
+    if CONFIG.search.type in ("desktop", "both", None):
+        with Browser(mobile=False, account=currentAccount) as desktopBrowser:
             utils = desktopBrowser.utils
-            Login(desktopBrowser, args).login()
+            Login(desktopBrowser).login()
             startingPoints = utils.getAccountPoints()
             logging.info(
-                f"[POINTS] You have {utils.formatNumber(startingPoints)} points on your account"
+                f"[POINTS] You have {formatNumber(startingPoints)} points on your account"
             )
-            # todo Combine these classes so main loop isn't duplicated
-            DailySet(desktopBrowser).completeDailySet()
+            Activities(desktopBrowser).completeActivities()
             PunchCards(desktopBrowser).completePunchCards()
-            MorePromotions(desktopBrowser).completeMorePromotions()
             # VersusGame(desktopBrowser).completeVersusGame()
 
             with Searches(desktopBrowser) as searches:
@@ -256,13 +170,16 @@ def executeBot(currentAccount: Account, args: argparse.Namespace):
             )
             accountPoints = utils.getAccountPoints()
 
-    if args.searchtype in ("mobile", None):
-        with Browser(mobile=True, account=currentAccount, args=args) as mobileBrowser:
+    if CONFIG.search.type in ("mobile", "both", None):
+        with Browser(mobile=True, account=currentAccount) as mobileBrowser:
             utils = mobileBrowser.utils
-            Login(mobileBrowser, args).login()
+            Login(mobileBrowser).login()
             if startingPoints is None:
                 startingPoints = utils.getAccountPoints()
-            ReadToEarn(mobileBrowser).completeReadToEarn()
+            try:
+                ReadToEarn(mobileBrowser).completeReadToEarn()
+            except Exception:
+                logging.exception("[READ TO EARN] Failed to complete Read to Earn")
             with Searches(mobileBrowser) as searches:
                 searches.bingSearches()
 
@@ -275,42 +192,38 @@ def executeBot(currentAccount: Account, args: argparse.Namespace):
             accountPoints = utils.getAccountPoints()
 
     logging.info(
-        f"[POINTS] You have earned {Utils.formatNumber(accountPoints - startingPoints)} points this run !"
+        f"[POINTS] You have earned {formatNumber(accountPoints - startingPoints)} points this run !"
     )
-    logging.info(
-        f"[POINTS] You are now at {Utils.formatNumber(accountPoints)} points !"
-    )
-    appriseSummary = AppriseSummary[
-        Utils.loadConfig().get("apprise", {}).get("summary", AppriseSummary.ALWAYS.name)
-    ]
+    logging.info(f"[POINTS] You are now at {formatNumber(accountPoints)} points !")
+    appriseSummary = AppriseSummary[CONFIG.apprise.summary]
     if appriseSummary == AppriseSummary.ALWAYS:
         goalStatus = ""
         if goalPoints > 0:
             logging.info(
-                f"[POINTS] You are now at {(Utils.formatNumber((accountPoints / goalPoints) * 100))}% of your "
-                f"goal ({goalTitle}) !"
+                f"[POINTS] You are now at {(formatNumber((accountPoints / goalPoints) * 100))}%"
+                f" of your goal ({goalTitle}) !"
             )
             goalStatus = (
-                f"🎯 Goal reached: {(Utils.formatNumber((accountPoints / goalPoints) * 100))}%"
+                f"🎯 Goal reached: {(formatNumber((accountPoints / goalPoints) * 100))}%"
                 f" ({goalTitle})"
             )
 
-        Utils.sendNotification(
-            "Daily Points Update",
+        APPRISE.notify(
             "\n".join(
                 [
-                    f"👤 Account: {currentAccount.username}",
-                    f"⭐️ Points earned today: {Utils.formatNumber(accountPoints - startingPoints)}",
-                    f"💰 Total points: {Utils.formatNumber(accountPoints)}",
+                    f"👤 Account: {currentAccount.email}",
+                    f"⭐️ Points earned today: {formatNumber(accountPoints - startingPoints)}",
+                    f"💰 Total points: {formatNumber(accountPoints)}",
                     goalStatus,
                 ]
             ),
+            "Daily Points Update",
         )
     elif appriseSummary == AppriseSummary.ON_ERROR:
         if remainingSearches.getTotal() > 0:
-            Utils.sendNotification(
+            APPRISE.notify(
+                f"account email: {currentAccount.email}, {remainingSearches}",
                 "Error: remaining searches",
-                f"account username: {currentAccount.username}, {remainingSearches}",
             )
     elif appriseSummary == AppriseSummary.NEVER:
         pass
@@ -319,9 +232,9 @@ def executeBot(currentAccount: Account, args: argparse.Namespace):
 
 
 def export_points_to_csv(points_data):
-    logs_directory = Utils.getProjectRoot() / "logs"
+    logs_directory = getProjectRoot() / "logs"
     csv_filename = logs_directory / "points_data.csv"
-    with open(csv_filename, mode="a", newline="") as file:  # Use "a" mode for append
+    with open(csv_filename, mode="a", newline="", encoding="utf-8") as file:
         fieldnames = ["Account", "Earned Points", "Points Difference"]
         writer = csv.DictWriter(file, fieldnames=fieldnames)
 
@@ -337,8 +250,7 @@ def export_points_to_csv(points_data):
 def load_previous_points_data():
     try:
         with open(
-            Utils.getProjectRoot() / "logs" / "previous_points_data.json", "r"
-        ) as file:
+                getProjectRoot() / "logs" / "previous_points_data.json", encoding='utf-8') as file:
             return json.load(file)
     except FileNotFoundError:
         return {}
@@ -346,8 +258,8 @@ def load_previous_points_data():
 
 # Define a function to save the current day's points data for the next day in the "logs" folder
 def save_previous_points_data(data):
-    logs_directory = Utils.getProjectRoot() / "logs"
-    with open(logs_directory / "previous_points_data.json", "w") as file:
+    logs_directory = getProjectRoot() / "logs"
+    with open(logs_directory / "previous_points_data.json", "w", encoding="utf-8") as file:
         json.dump(data, file, indent=4)
 
 
@@ -356,6 +268,9 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         logging.exception("")
-        Utils.sendNotification(
-            "⚠️ Error occurred, please check the log", traceback.format_exc()
-        )
+        if CONFIG.get("apprise.notify.uncaught-exception"):
+            APPRISE.notify(
+                f"{type(e).__name__}: {e}",
+                "⚠️ Error occurred, please check the log",
+            )
+        sys.exit(1)

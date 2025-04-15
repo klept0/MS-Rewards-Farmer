@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2025-04-08
+
+### Added
+
+- Consolidated all language-specific data into a single dictionary for `localized_activities`, simplifying management and improving performance.
+- New activity handling.
+- Added country and language code validation functions and updated browser geolocation handling.
+- Added configuration options in `config.yaml` for activity handling and error notifications:
+  - `apprise.notify.incomplete-activity` for incomplete activity notifications.
+  - `apprise.notify.login-code` for login with phone code notifications.
+- Added reset functionality to delete session files and terminate Chrome processes.
+- Added CODEOWNERS file for repository management.
+- Added Docker build for easier deployment and execution.
+- Added `run.ps1` script with the following features:
+  - Automatic detection of Python installations or virtual environments.
+  - Retry logic for running the main script with configurable maximum attempts.
+  - Automatic cleanup of Chrome processes and session files on failure.
+  - Support for updating the script via Git if in a Git repository.
+  - Command-line options for customization, including Python path, script directory, and session folder.
+
+### Changed
+
+- Improved retry logic in `getBingInfo` and updated backoff factor configuration.
+- Updated `config.yaml` to enhance logging and error reporting configurations.
+- Refactored activity handling to use localized titles and queries.
+- Improved logging for activity completion, error reporting, and localization warnings.
+- Enhanced JSON response handling in `utils.py` and updated parameters in `run.ps1`.
+- Replaced `accounts.json` with account information now stored in `config.yaml` for better configuration management.
+- Adjusted cooldowns and wait times for better performance.
+
+### Fixed
+
+- Fixed issues with quiz completion logic for "This or That" and "ABC" activities.
+- Addressed edge cases where activities were incorrectly marked as incomplete.
+- Fixed activities containing non-breakable spaces in their names.
+- Fixed Google Trends API integration and improved trend keyword handling.
+- Fixed click handling in `activities.py` to use the correct answer element.
+- Fixed issue related to mobile search for level 1 users.
+- Fixed Apprise notification error.
+- Fixed exit code to return `exit 1` on errors instead of `exit 0`.
+
+### Removed
+
+- Removed unused imports and deprecated classes for cleaner codebase.
+- Removed `MS_reward.bat` in favor of the more robust `run.ps1` script.
+- Removed `config-private.yaml` in favor of consolidating configurations into `config.yaml`.
+- Removed password logging.
+
+### Other
+
+- Added locked/banned user detection.
+- Skipped un-doable activities.
+
 ## [1.1.0] - 2024-08-30
 
 ### Added
@@ -87,11 +140,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - New [config.yaml](config.yaml) options
   - `retries`
-    - `base_delay_in_seconds`: how many seconds to delay
+    - `base-delay-in-seconds`: how many seconds to delay
     - `max`: the max amount of retries to attempt
     - `strategy`: method to use when retrying, can be either:
-      - `CONSTANT`: the default; a constant `base_delay_in_seconds` between attempts
-      - `EXPONENTIAL`: an exponentially increasing `base_delay_in_seconds` between attempts
+      - `CONSTANT`: the default; a constant `base-delay-in-seconds` between attempts
+      - `EXPONENTIAL`: an exponentially increasing `base-delay-in-seconds` between attempts
   - `apprise.summary`: configures how results are summarized via Apprise, can be either:
     - `ALWAYS`: the default, as it was before, how many points were gained and goal percentage if set
     - `ON_ERROR`: only sends email if for some reason there's remaining searches

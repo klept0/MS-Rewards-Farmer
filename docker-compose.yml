@@ -1,0 +1,13 @@
+services:
+  ms-rewards:
+    container_name: ms-rewards-farmer
+    build: .
+    image: ms-rewards-farmer:latest
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./config.yaml:/app/config.yaml:ro
+#      - ./sessions:/app/sessions  # Optional but avoids re-logging in  # fixme Not working
+    restart: unless-stopped
+    environment:
+      - RUN_ONCE=false
+      - CRON_SCHEDULE=0 4 * * *

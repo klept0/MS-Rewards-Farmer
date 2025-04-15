@@ -4,13 +4,14 @@ from typing import Any
 import requests
 from requests import HTTPError, Response
 
-from src.utils import Utils
+from src.utils import makeRequestsSession
 
 
 class GenerateUserAgent:
     """A class for generating user agents for Microsoft Rewards Farmer."""
 
-    # Reduced device name, ref: https://developer.chrome.com/blog/user-agent-reduction-android-model-and-version/
+    # Reduced device name
+    # ref: https://developer.chrome.com/blog/user-agent-reduction-android-model-and-version/
     MOBILE_DEVICE = "K"
 
     USER_AGENT_TEMPLATES = {
@@ -40,7 +41,8 @@ class GenerateUserAgent:
         Generates a user agent string for either a mobile or PC device.
 
         Args:
-            mobile: A boolean indicating whether the user agent should be generated for a mobile device.
+            mobile: A boolean indicating whether the user agent should be
+            generated for a mobile device.
 
         Returns:
             A string containing the user agent for the specified device.
@@ -93,7 +95,8 @@ class GenerateUserAgent:
         Generates the system components for the user agent string.
 
         Args:
-            mobile: A boolean indicating whether the user agent should be generated for a mobile device.
+            mobile: A boolean indicating whether the user agent should be
+            generated for a mobile device.
 
         Returns:
             A string containing the system components for the user agent string.
@@ -139,29 +142,45 @@ class GenerateUserAgent:
         response = self.getWebdriverPage(
             "https://edgeupdates.microsoft.com/api/products"
         )
+
+        def getValueIgnoreCase(data: dict, key: str) -> Any:
+            """Get the value from a dictionary ignoring the case of the first letter of the key."""
+            for k, v in data.items():
+                if k.lower() == key.lower():
+                    return v
+            return None
+
         data = response.json()
         if stableProduct := next(
-            (product for product in data if product["Product"] == "Stable"),
+            (
+                product
+                for product in data
+                if getValueIgnoreCase(product, "product") == "Stable"
+            ),
             None,
         ):
-            releases = stableProduct["Releases"]
+            releases = getValueIgnoreCase(stableProduct, "releases")
             androidRelease = next(
-                (release for release in releases if release["Platform"] == "Android"),
+                (
+                    release
+                    for release in releases
+                    if getValueIgnoreCase(release, "platform") == "Android"
+                ),
                 None,
             )
             windowsRelease = next(
                 (
                     release
                     for release in releases
-                    if release["Platform"] == "Windows"
-                    and release["Architecture"] == "x64"
+                    if getValueIgnoreCase(release, "platform") == "Windows"
+                    and getValueIgnoreCase(release, "architecture") == "x64"
                 ),
                 None,
             )
             if androidRelease and windowsRelease:
                 return (
-                    windowsRelease["ProductVersion"],
-                    androidRelease["ProductVersion"],
+                    getValueIgnoreCase(windowsRelease, "productVersion"),
+                    getValueIgnoreCase(androidRelease, "productVersion"),
                 )
         raise HTTPError("Failed to get Edge versions.")
 
@@ -180,7 +199,7 @@ class GenerateUserAgent:
 
     @staticmethod
     def getWebdriverPage(url: str) -> Response:
-        response = Utils.makeRequestsSession().get(url)
+        response = makeRequestsSession().get(url)
         if response.status_code != requests.codes.ok:  # pylint: disable=no-member
             raise HTTPError(
                 f"Failed to get webdriver page {url}. "

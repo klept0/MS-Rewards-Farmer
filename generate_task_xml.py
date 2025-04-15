@@ -1,11 +1,12 @@
+import datetime as dt
 import getpass
 import os
 import subprocess
-from datetime import datetime
 from pathlib import Path
 
 # Get the directory of the script being run
 script_dir = Path(__file__).parent.resolve()
+script_path = script_dir / "run.ps1"
 
 # Get the current user's name
 current_user = getpass.getuser()
@@ -39,36 +40,12 @@ if sid is None:
 
 computer_name = os.environ["COMPUTERNAME"]
 
-# Let the user choose between Miniconda and Anaconda
-print("Please choose your Python distribution:")
-print("1. Local (Windows system Python without virtual environment)")
-print("2. Anaconda")
-print("3. Miniconda")
-choice = input("Enter your choice (1, 2, or 3): ")
-
-if choice == "1":
-    command = f"{script_dir}\\MS_reward.bat"
-elif choice == "2":
-    base_path = f"C:\\Users\\{current_user}\\anaconda3"
-    command = f"{base_path}\\Scripts\\activate.bat {base_path} &amp;&amp; conda activate {{env_name}} &amp;&amp; {script_dir}\\MS_reward.bat"
-elif choice == "3":
-    base_path = f"C:\\Users\\{current_user}\\miniconda3"
-    command = f"{base_path}\\Scripts\\activate.bat {base_path} &amp;&amp; conda activate {{env_name}} &amp;&amp; {script_dir}\\MS_reward.bat"
-else:
-    print("Invalid choice, please rerun the script and choose 1, 2, or 3.")
-    exit(1)
-
-# Let the user enter the name of the environment they are using
-if choice in ["2", "3"]:
-    env_name = input("Please enter the name of the environment you are using: ")
-    command = command.format(env_name=env_name)
-
 xml_content = f"""<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <RegistrationInfo>
-    <Date>{datetime.utcnow().isoformat()}</Date>
+    <Date>{dt.datetime.now(dt.UTC).isoformat()}</Date>
     <Author>{computer_name}\\{current_user}</Author>
-    <URI>\\Custom\\MS reward</URI>
+    <URI>\\Custom\\MsReward</URI>
   </RegistrationInfo>
   <Triggers>
     <CalendarTrigger>
@@ -107,15 +84,15 @@ xml_content = f"""<?xml version="1.0" encoding="UTF-16"?>
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>%windir%\\System32\\cmd.exe</Command>
-      <Arguments>/K "{command}"</Arguments>
+      <Command>%windir%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe</Command>
+      <Arguments>-File "{script_path}" -ExecutionPolicy Bypass</Arguments>
       <WorkingDirectory>{script_dir}</WorkingDirectory>
     </Exec>
   </Actions>
 </Task>"""
 
 # Use the script directory as the output path
-output_path = script_dir / "MS_reward.xml"
+output_path = script_dir / "MsReward.xml"
 
 with open(output_path, "w", encoding="utf-16") as file:
     file.write(xml_content)

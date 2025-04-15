@@ -1,20 +1,35 @@
 import contextlib
+import importlib
 import json
 import locale as pylocale
 import logging
+import random
 import re
+import shutil
+import sys
 import time
-from argparse import Namespace
+from argparse import Namespace, ArgumentParser
+from copy import deepcopy
+from datetime import date
 from pathlib import Path
-from typing import Any
+from types import ModuleType
+from typing import Any, Self
 
+import psutil
+import pycountry
 import requests
 import yaml
 from apprise import Apprise
-from requests import Session
+from ipapi import ipapi
+from ipapi.exceptions import RateLimited
+from requests import Session, JSONDecodeError
 from requests.adapters import HTTPAdapter
-from selenium.common import NoSuchElementException, TimeoutException, ElementClickInterceptedException, \
-    ElementNotInteractableException
+from selenium.common import (
+    ElementClickInterceptedException,
+    ElementNotInteractableException,
+    NoSuchElementException,
+    TimeoutException,
+)
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
@@ -22,51 +37,181 @@ from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 from urllib3 import Retry
 
-from .constants import REWARDS_URL
-from .constants import SEARCH_URL
+from .constants import REWARDS_URL, SEARCH_URL
+
+PREFER_BING_INFO = True
+
+
+class Config(dict):
+    """
+    A class that extends the built-in dict class to provide additional functionality
+    (such as nested dictionaries and lists, YAML loading, and attribute access)
+    to make it easier to work with configuration data.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for key, value in self.items():
+            if isinstance(value, dict):
+                self[key] = self.__class__(value)
+            if isinstance(value, list):
+                for i, v in enumerate(value):
+                    if isinstance(v, dict):
+                        value[i] = self.__class__(v)
+
+    def __or__(self, other):
+        new = deepcopy(self)
+        for key in other:
+            if key in new:
+                if isinstance(new[key], dict) and isinstance(other[key], dict):
+                    new[key] = new[key] | other[key]
+                    continue
+            if isinstance(other[key], dict):
+                new[key] = self.__class__(other[key])
+                continue
+            if isinstance(other[key], list):
+                new[key] = self.configifyList(other[key])
+                continue
+            new[key] = other[key]
+        return new
+
+    def __getattribute__(self, item):
+        if item in self:
+            return self[item]
+        return super().__getattribute__(item)
+
+    def __setattr__(self, key, value):
+        if isinstance(value, dict):
+            value = self.__class__(value)
+        if isinstance(value, list):
+            value = self.configifyList(value)
+        self[key] = value
+
+    def __getitem__(self, item):
+        if not isinstance(item, str) or not "." in item:
+            return super().__getitem__(item)
+        item: str
+        items = item.split(".")
+        found = super().__getitem__(items[0])
+        for child_items in items[1:]:
+            found = found.__getitem__(child_items)
+        return found
+
+    def __setitem__(self, key, value):
+        if isinstance(value, dict):
+            value = self.__class__(value)
+        if isinstance(value, list):
+            value = self.configifyList(value)
+        if not isinstance(key, str) or not "." in key:
+            super().__setitem__(key, value)
+            return
+        item: str
+        items = key.split(".")
+        found = super().__getitem__(items[0])
+        for item in items[1:-1]:
+            found = found.__getitem__(item)
+        found.__setitem__(items[-1], value)
+
+    @classmethod
+    def fromYaml(cls, path: Path) -> Self:
+        if not path.exists() or not path.is_file():
+            return cls()
+        with open(path, encoding="utf-8") as f:
+            yamlContents = yaml.safe_load(f)
+            if not yamlContents:
+                return cls()
+            return cls(yamlContents)
+
+    @classmethod
+    def configifyList(cls, listToConvert: list) -> list:
+        new = [None] * len(listToConvert)
+        for index, item in enumerate(listToConvert):
+            if isinstance(item, dict):
+                new[index] = cls(item)
+                continue
+            if isinstance(item, list):
+                new[index] = cls.configifyList(item)
+                continue
+            new[index] = item
+        return new
+
+    @classmethod
+    def dictifyList(cls, listToConvert: list) -> list:
+        new = [None] * len(listToConvert)
+        for index, item in enumerate(listToConvert):
+            if isinstance(item, cls):
+                new[index] = item.toDict()
+                continue
+            if isinstance(item, list):
+                new[index] = cls.dictifyList(item)
+                continue
+            new[index] = item
+        return new
+
+    def get(self, item, default=None):
+        if not isinstance(item, str) or not "." in item:
+            return super().get(item, default)
+        item: str
+        keys = item.split(".")
+        found = super().get(keys[0], default)
+        for key in keys[1:]:
+            found = found.get(key, default)
+        return found
+
+    def toDict(self) -> dict:
+        new = {}
+        for key, value in self.items():
+            if isinstance(value, self.__class__):
+                new[key] = value.toDict()
+                continue
+            if isinstance(value, list):
+                new[key] = self.dictifyList(value)
+                continue
+            new[key] = value
+        return new
+
+
+DEFAULT_CONFIG: Config = Config(
+    {
+        "apprise": {
+            "enabled": True,
+            "notify": {
+                "incomplete-activity": True,
+                "uncaught-exception": True,
+                "login-code": True,
+            },
+            "summary": "ON_ERROR",
+            "urls": [],
+        },
+        "browser": {
+            "geolocation": None,
+            "language": None,
+            "visible": False,
+            "proxy": None,
+        },
+        "rtfr": False,
+        "logging": {
+            "format": "%(asctime)s [%(levelname)s] %(message)s",
+            "level": "INFO",
+        },
+        "retries": {"backoff-factor": 120, "max": 4, "strategy": "EXPONENTIAL"},
+        "cooldown": {"min": 300, "max": 600},
+        "search": {"type": "both"},
+        "accounts": [],
+    }
+)
 
 
 class Utils:
-    args: Namespace
+    """
+    A class that provides utility functions for Selenium WebDriver interactions.
+    """
 
     def __init__(self, webdriver: WebDriver):
         self.webdriver = webdriver
         with contextlib.suppress(Exception):
-            locale = pylocale.getdefaultlocale()[0]
+            locale = pylocale.getlocale()[0]
             pylocale.setlocale(pylocale.LC_NUMERIC, locale)
-
-        self.config = self.loadConfig()
-
-    @staticmethod
-    def getProjectRoot() -> Path:
-        return Path(__file__).parent.parent
-
-    @staticmethod
-    def loadConfig(configFilename="config.yaml") -> dict:
-        configFile = Utils.getProjectRoot() / configFilename
-        try:
-            with open(configFile, "r") as file:
-                config = yaml.safe_load(file)
-                if not config:
-                    logging.info(f"{file} doesn't exist")
-                    return {}
-                return config
-        except OSError:
-            logging.warning(f"{configFilename} doesn't exist")
-            return {}
-
-    @staticmethod
-    def sendNotification(title, body) -> None:
-        if Utils.args.disable_apprise:
-            return
-        apprise = Apprise()
-        urls: list[str] = Utils.loadConfig("config-private.yaml").get("apprise", {}).get("urls", [])
-        if not urls:
-            logging.debug("No urls found, not sending notification")
-            return
-        for url in urls:
-            apprise.add(url)
-        assert apprise.notify(title=str(title), body=str(body))
 
     def waitUntilVisible(
         self, by: str, selector: str, timeToWait: float = 10
@@ -115,53 +260,55 @@ class Utils:
 
     def goToSearch(self) -> None:
         self.webdriver.get(SEARCH_URL)
-        # assert (
-        #     self.webdriver.current_url == SEARCH_URL
-        # ), f"{self.webdriver.current_url} {SEARCH_URL}"  # need regex: AssertionError: https://www.bing.com/?toWww=1&redig=A5B72363182B49DEBB7465AD7520FDAA https://bing.com/
 
-    @staticmethod
-    def getAnswerCode(key: str, string: str) -> str:
-        t = sum(ord(string[i]) for i in range(len(string)))
-        t += int(key[-2:], 16)
-        return str(t)
-
+    # Prefer getBingInfo if possible
     def getDashboardData(self) -> dict:
-        urlBefore = self.webdriver.current_url
-        try:
-            self.goToRewards()
-            return self.webdriver.execute_script("return dashboard")
-        finally:
-            try:
-                self.webdriver.get(urlBefore)
-            except TimeoutException:
-                self.goToRewards()
+        self.goToRewards()
+        time.sleep(5)  # fixme Avoid busy wait (if this works)
+        return self.webdriver.execute_script("return dashboard")
+
+    def getDailySetPromotions(self) -> list[dict]:
+        return self.getDashboardData()["dailySetPromotions"][
+            date.today().strftime("%m/%d/%Y")
+        ]
+
+    def getMorePromotions(self) -> list[dict]:
+        return self.getDashboardData()["morePromotions"]
+
+    def getActivities(self) -> list[dict]:
+        return self.getDailySetPromotions() + self.getMorePromotions()
 
     def getBingInfo(self) -> Any:
-        session = self.makeRequestsSession()
+        session = makeRequestsSession()
+        retries = CONFIG.retries.max
+        backoff_factor = CONFIG.get("retries.backoff-factor")
 
         for cookie in self.webdriver.get_cookies():
             session.cookies.set(cookie["name"], cookie["value"])
 
-        response = session.get("https://www.bing.com/rewards/panelflyout/getuserinfo")
-
-        assert response.status_code == requests.codes.ok
-        return response.json()["userInfo"]
-
-    @staticmethod
-    def makeRequestsSession(session: Session = requests.session()) -> Session:
-        retry = Retry(
-            total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504]
-        )
-        session.mount(
-            "https://", HTTPAdapter(max_retries=retry)
-        )  # See https://stackoverflow.com/a/35504626/4164390 to finetune
-        session.mount(
-            "http://", HTTPAdapter(max_retries=retry)
-        )  # See https://stackoverflow.com/a/35504626/4164390 to finetune
-        return session
+        for attempt in range(retries):
+            try:
+                response = session.get(
+                    "https://www.bing.com/rewards/panelflyout/getuserinfo"
+                )
+                assert (
+                    response.status_code == requests.codes.ok
+                )  # pylint: disable=no-member
+                return response.json()
+            except (JSONDecodeError, AssertionError) as e:
+                logging.info(f"Attempt {attempt + 1} failed: {e}")
+                if attempt < retries - 1:
+                    sleep_time = backoff_factor * (2**attempt)
+                    logging.info(f"Retrying in {sleep_time} seconds...")
+                    time.sleep(sleep_time)
+                else:
+                    # noinspection PyUnboundLocalVariable
+                    logging.debug(response)
+                    raise
 
     def isLoggedIn(self) -> bool:
-        # return self.getBingInfo()["isRewardsUser"]  # todo For some reason doesn't work, but doesn't involve changing url so preferred
+        if self.getBingInfo()["isRewardsUser"]:  # faster, if it works
+            return True
         self.webdriver.get(
             "https://rewards.bing.com/Signin/"
         )  # changed site to allow bypassing when M$ blocks access to login.live.com randomly
@@ -173,16 +320,22 @@ class Utils:
         return False
 
     def getAccountPoints(self) -> int:
-        return self.getBingInfo()["balance"]
+        if PREFER_BING_INFO:
+            return self.getBingInfo()["userInfo"]["balance"]
+        return self.getDashboardData()["userStatus"]["availablePoints"]
 
     def getGoalPoints(self) -> int:
+        if PREFER_BING_INFO:
+            return self.getBingInfo()["flyoutResult"]["userGoal"]["price"]
         return self.getDashboardData()["userStatus"]["redeemGoal"]["price"]
 
     def getGoalTitle(self) -> str:
+        if PREFER_BING_INFO:
+            return self.getBingInfo()["flyoutResult"]["userGoal"]["title"]
         return self.getDashboardData()["userStatus"]["redeemGoal"]["title"]
 
     def tryDismissAllMessages(self) -> None:
-        buttons = [
+        byValues = [
             (By.ID, "iLandingViewAction"),
             (By.ID, "iShowSkip"),
             (By.ID, "iNext"),
@@ -190,30 +343,26 @@ class Utils:
             (By.ID, "idSIButton9"),
             (By.ID, "bnp_btn_accept"),
             (By.ID, "acceptButton"),
+            (By.CSS_SELECTOR, ".dashboardPopUpPopUpSelectButton"),
         ]
-        for button in buttons:
-            try:
-                elements = self.webdriver.find_elements(by=button[0], value=button[1])
-            except (NoSuchElementException, ElementNotInteractableException):  # Expected?
-                logging.debug("", exc_info=True)
-                continue
-            for element in elements:
-                element.click()
-        self.tryDismissCookieBanner()
-        self.tryDismissBingCookieBanner()
-
-    def tryDismissCookieBanner(self) -> None:
-        with contextlib.suppress(NoSuchElementException, ElementNotInteractableException):  # Expected
+        for byValue in byValues:
+            dismissButtons = []
+            with contextlib.suppress(NoSuchElementException):
+                dismissButtons = self.webdriver.find_elements(
+                    by=byValue[0], value=byValue[1]
+                )
+            for dismissButton in dismissButtons:
+                dismissButton.click()
+        with contextlib.suppress(NoSuchElementException):
             self.webdriver.find_element(By.ID, "cookie-banner").find_element(
                 By.TAG_NAME, "button"
             ).click()
 
-    def tryDismissBingCookieBanner(self) -> None:
-        with contextlib.suppress(NoSuchElementException, ElementNotInteractableException):  # Expected
-            self.webdriver.find_element(By.ID, "bnp_btn_accept").click()
-
-    def switchToNewTab(self, timeToWait: float = 0) -> None:
+    def switchToNewTab(self, timeToWait: float = 10, closeTab: bool = False) -> None:
+        time.sleep(timeToWait)
         self.webdriver.switch_to.window(window_name=self.webdriver.window_handles[1])
+        if closeTab:
+            self.closeCurrentTab()
 
     def closeCurrentTab(self) -> None:
         self.webdriver.close()
@@ -221,33 +370,474 @@ class Utils:
         self.webdriver.switch_to.window(window_name=self.webdriver.window_handles[0])
         time.sleep(0.5)
 
-    def visitNewTab(self, timeToWait: float = 0) -> None:
-        self.switchToNewTab(timeToWait)
-        self.closeCurrentTab()
-
-    @staticmethod
-    def formatNumber(number, num_decimals=2) -> str:
-        return pylocale.format_string(
-            f"%10.{num_decimals}f", number, grouping=True
-        ).strip()
-
-    @staticmethod
-    def getBrowserConfig(sessionPath: Path) -> dict | None:
-        configFile = sessionPath / "config.json"
-        if not configFile.exists():
-            return
-        with open(configFile, "r") as f:
-            return json.load(f)
-
-    @staticmethod
-    def saveBrowserConfig(sessionPath: Path, config: dict) -> None:
-        configFile = sessionPath / "config.json"
-        with open(configFile, "w") as f:
-            json.dump(config, f)
-
     def click(self, element: WebElement) -> None:
         try:
-            element.click()
-        except (ElementClickInterceptedException, ElementNotInteractableException):
+            WebDriverWait(self.webdriver, 10).until(
+                expected_conditions.element_to_be_clickable(element)
+            ).click()
+        except (
+            TimeoutException,
+            ElementClickInterceptedException,
+            ElementNotInteractableException,
+        ):
             self.tryDismissAllMessages()
+            with contextlib.suppress(TimeoutException):
+                WebDriverWait(self.webdriver, 10).until(
+                    expected_conditions.element_to_be_clickable(element)
+                )
             element.click()
+
+
+def argumentParser() -> Namespace:
+    parser = ArgumentParser(
+        description="A simple bot that uses Selenium to farm M$ Rewards in Python",
+        epilog="At least one account should be specified,"
+        " either using command line arguments or a configuration file."
+        "\nAll specified arguments will override the configuration file values.",
+    )
+    parser.add_argument(
+        "-c",
+        "--config",
+        type=str,
+        default=None,
+        help="Specify the configuration file path",
+    )
+    parser.add_argument(
+        "-C",
+        "--create-config",
+        action="store_true",
+        help="Create a fillable configuration file with basic settings"
+        " and given ones if none exists",
+    )
+    parser.add_argument(
+        "-v",
+        "--visible",
+        action="store_true",
+        help="Visible browser (Disable headless mode)",
+    )
+    parser.add_argument(
+        "-l",
+        "--lang",
+        type=str,
+        default=None,
+        help="Language (ex: en)"
+        "\nsee https://serpapi.com/google-languages for options",
+    )
+    parser.add_argument(
+        "-g",
+        "--geo",
+        type=str,
+        default=None,
+        help="Searching geolocation (ex: US)"
+        "\nsee https://serpapi.com/google-trends-locations for options (should be uppercase)",
+    )
+    parser.add_argument(
+        "-em",
+        "--email",
+        type=str,
+        default=None,
+        help="Email address of the account to run. Only used if a password is given.",
+    )
+    parser.add_argument(
+        "-pw",
+        "--password",
+        type=str,
+        default=None,
+        help="Password of the account to run. Only used if an email is given.",
+    )
+    parser.add_argument(
+        "-p",
+        "--proxy",
+        type=str,
+        default=None,
+        help="Global Proxy, supports http/https/socks4/socks5"
+        " (overrides config per-account proxies)"
+        "\n`(ex: http://user:pass@host:port)`",
+    )
+    parser.add_argument(
+        "-t",
+        "--searchtype",
+        choices=["desktop", "mobile", "both"],
+        default=None,
+        help="Set to search in either desktop, mobile or both (default: both)",
+    )
+    parser.add_argument(
+        "-da",
+        "--disable-apprise",
+        action="store_true",
+        help="Disable Apprise notifications, useful when developing",
+    )
+    parser.add_argument(
+        "-d",
+        "--debug",
+        action="store_true",
+        help="Set the logging level to DEBUG",
+    )
+    parser.add_argument(
+        "-r",
+        "--reset",
+        action="store_true",
+        help="Delete the session folder and temporary files and kill"
+        " all chrome processes. Can help resolve issues.",
+    )
+    return parser.parse_args()
+
+
+def getProjectRoot() -> Path:
+    return Path(__file__).parent.parent
+
+
+def commandLineArgumentsAsConfig(args: Namespace) -> Config:
+    config = Config()
+    if args.visible:
+        config.browser = Config()
+        config.browser.visible = True
+    if args.lang:
+        if "browser" not in config:
+            config.browser = Config()
+        config.browser.language = args.lang
+    if args.geo:
+        if "browser" not in config:
+            config.browser = Config()
+        config.browser.geolocation = args.geo
+    if args.proxy:
+        if "browser" not in config:
+            config.browser = Config()
+        config.browser.proxy = args.proxy
+    if args.disable_apprise:
+        config.apprise = Config()
+        config.apprise.enabled = False
+    if args.debug:
+        config.logging = Config()
+        config.logging.level = "DEBUG"
+    if args.searchtype:
+        config.search = Config()
+        config.search.type = args.searchtype
+    if args.email and args.password:
+        config.accounts = [
+            Config(
+                email=args.email,
+                password=args.password,
+            )
+        ]
+
+    return config
+
+
+def setupAccounts(config: Config) -> Config:
+    def validEmail(email: str) -> bool:
+        """Validate Email."""
+        pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+        return bool(re.match(pattern, email))
+
+    loadedAccounts = []
+    for account in config.accounts:
+        if (
+            "email" not in account
+            or not isinstance(account.email, str)
+            or not validEmail(account.email)
+        ):
+            logging.warning(
+                f"[CREDENTIALS] Invalid email '{account.get('email', 'No email provided')}',"
+                f" skipping this account"
+            )
+            continue
+        if "password" not in account or not isinstance(account["password"], str):
+            logging.warning("[CREDENTIALS] Invalid password, skipping this account")
+            continue
+        logging.info(f"[CREDENTIALS] Account loaded {account.email}")
+        loadedAccounts.append(account)
+
+    if not loadedAccounts:
+        noAccountsNotice = """
+        [ACCOUNT] No valid account provided.
+        [ACCOUNT] Please provide a valid account, either using command line arguments or a configuration file.
+        [ACCOUNT] For command line, please use the following arguments (change the email and password):
+        [ACCOUNT]   `--email youremail@domain.com --password yourpassword` 
+        [ACCOUNT] For configuration file, please generate a configuration file using the `-C` argument,
+        [ACCOUNT]   then edit the generated file by replacing the email and password using yours. 
+        """
+        logging.error(noAccountsNotice)
+        sys.exit(1)
+
+    random.shuffle(loadedAccounts)
+    config.accounts = loadedAccounts
+    return config
+
+
+def createEmptyConfig(configPath: Path, config: Config) -> None:
+    if configPath.is_file():
+        logging.error(f"[CONFIG] A file already exists at '{configPath}'")
+        sys.exit(1)
+
+    emptyConfig = Config(
+        {
+            "apprise": {"urls": ["discord://{WebhookID}/{WebhookToken}"]},
+            "accounts": [
+                {
+                    "email": "Your Email 1",
+                    "password": "Your Password 1",
+                    "totp": "0123 4567 89ab cdef",
+                    "proxy": "http://user:pass@host1:port",
+                },
+                {
+                    "email": "Your Email 2",
+                    "password": "Your Password 2",
+                    "totp": "0123 4567 89ab cdef",
+                    "proxy": "http://user:pass@host2:port",
+                },
+            ],
+        }
+    )
+    with open(configPath, "w", encoding="utf-8") as configFile:
+        yaml.dump((emptyConfig | config).toDict(), configFile)
+    print(f"A configuration file was created at '{configPath}'")
+    sys.exit()
+
+
+def resetBot():
+    """
+    Delete the session folder and temporary files and kill all chrome processes.
+    """
+
+    sessionPath = getProjectRoot() / "sessions"
+    if sessionPath.exists():
+        print(f"Deleting sessions folder '{sessionPath}'")
+        shutil.rmtree(sessionPath)
+
+    filesToDeletePaths = (
+        getProjectRoot() / "google_trends.bak",
+        getProjectRoot() / "google_trends.dat",
+        getProjectRoot() / "google_trends.dir",
+        getProjectRoot() / "logs" / "previous_points_data.json",
+    )
+    for path in filesToDeletePaths:
+        print(f"Deleting file '{path}'")
+        path.unlink(missing_ok=True)
+
+    for proc in psutil.process_iter(["pid", "name"]):
+        if proc.info["name"] == "chrome.exe":
+            proc.kill()
+
+    print("All chrome processes killed")
+    sys.exit()
+
+
+def loadConfig(configFilename="config.yaml") -> Config:
+    args = argumentParser()
+    if args.config:
+        configFile = Path(args.config)
+    else:
+        configFile = getProjectRoot() / configFilename
+
+    args_config = commandLineArgumentsAsConfig(args)
+
+    if args.create_config:
+        createEmptyConfig(configFile, args_config)
+
+    if args.reset:
+        resetBot()
+
+    config = DEFAULT_CONFIG | Config.fromYaml(configFile) | args_config
+
+    if config.rtfr:
+        print("Please read the README.md file before using this script. Exiting.")
+        sys.exit()
+
+    return config
+
+
+def initApprise() -> Apprise:
+    apprise = Apprise()
+
+    urls = []
+    if CONFIG.apprise.enabled:
+        urls: list[str] = CONFIG.apprise.urls
+        if not urls:
+            logging.info("No apprise urls found, not sending notification")
+
+    apprise.add(urls)
+    return apprise
+
+
+def getAnswerCode(key: str, string: str) -> str:
+    t = sum(ord(string[i]) for i in range(len(string)))
+    t += int(key[-2:], 16)
+    return str(t)
+
+
+def formatNumber(number, num_decimals=2) -> str:
+    return pylocale.format_string(f"%10.{num_decimals}f", number, grouping=True).strip()
+
+
+def getBrowserConfig(sessionPath: Path) -> dict | None:
+    configFile = sessionPath / "config.json"
+    if not configFile.exists():
+        return None
+    with open(configFile, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def saveBrowserConfig(sessionPath: Path, config: dict) -> None:
+    configFile = sessionPath / "config.json"
+    with open(configFile, "w", encoding="utf-8") as f:
+        json.dump(config, f)
+
+
+from typing import TypeVar
+
+T = TypeVar("T", bound=Session)
+
+
+def makeRequestsSession(session: T = requests.session()) -> T:
+    retry = Retry(
+        total=CONFIG.retries.max,
+        backoff_factor=CONFIG.get("retries.backoff-factor"),
+        status_forcelist=[
+            500,
+            502,
+            503,
+            504,
+        ],
+    )
+    session.mount(
+        "https://", HTTPAdapter(max_retries=retry)
+    )  # See https://stackoverflow.com/a/35504626/4164390 to finetune
+    session.mount(
+        "http://", HTTPAdapter(max_retries=retry)
+    )  # See https://stackoverflow.com/a/35504626/4164390 to finetune
+    return session
+
+
+def cooldown() -> None:
+    if sys.gettrace():
+        logging.info("[DEBUGGER] Debugger is attached, skipping cooldown.")
+        return
+
+    cooldownTime = random.randint(CONFIG.cooldown.min, CONFIG.cooldown.max)
+    logging.info(f"[COOLDOWN] Waiting for {cooldownTime} seconds")
+    time.sleep(cooldownTime)
+
+
+def isValidCountryCode(countryCode: str) -> bool:
+    """
+    Verifies if the given country code is a valid alpha-2 code with or without a region.
+
+    Args:
+        countryCode (str): The country code to verify.
+
+    Returns:
+        bool: True if the country code is valid, False otherwise.
+    """
+    if "-" in countryCode:
+        country, region = countryCode.split("-")
+    else:
+        country = countryCode
+        region = None
+
+    # Check if the country part is a valid alpha-2 code
+    if not pycountry.countries.get(alpha_2=country):
+        return False
+
+    # If region is provided, check if it is a valid region code
+    if region and not pycountry.subdivisions.get(code=f"{country}-{region}"):
+        return False
+
+    return True
+
+
+def isValidLanguageCode(languageCode: str) -> bool:
+    """
+    Verifies if the given language code is a valid ISO 639-1 or ISO 639-3 code,
+    and optionally checks the region if provided.
+
+    Args:
+        languageCode (str): The language code to verify.
+
+    Returns:
+        bool: True if the language code is valid, False otherwise.
+    """
+    if "-" in languageCode:
+        language, region = languageCode.split("-")
+    else:
+        language = languageCode
+        region = None
+
+    # Check if the language part is a valid ISO 639-1 or ISO 639-3 code
+    if not (
+        pycountry.languages.get(alpha_2=language)
+        or pycountry.languages.get(alpha_3=language)
+    ):
+        return False
+
+    # If region is provided, check if it is a valid country code
+    if region and not pycountry.countries.get(alpha_2=region):
+        return False
+
+    return True
+
+
+def getLanguageCountry() -> tuple[str, str]:
+    country = CONFIG.browser.geolocation
+    language = CONFIG.browser.language
+
+    if country and not isValidCountryCode(country):
+        logging.warning(
+            f"Invalid country code {country}, attempting to determine country code from IP"
+        )
+
+    ipapiLocation = None
+    if not country or not isValidCountryCode(country):
+        try:
+            ipapiLocation = ipapi.location()
+            country = ipapiLocation["country"]
+            regionCode = ipapiLocation["region_code"]
+            if regionCode:
+                country = country + "-" + regionCode
+            assert isValidCountryCode(country)
+        except RateLimited:
+            logging.warning("Rate limited by ipapi")
+
+    if language and not isValidLanguageCode(language):
+        logging.warning(
+            f"Invalid language code {language}, attempting to determine language code from IP"
+        )
+
+    if not language or not isValidLanguageCode(language):
+        try:
+            if ipapiLocation is None:
+                ipapiLocation = ipapi.location()
+            language = ipapiLocation["languages"].split(",")[0]
+            assert isValidLanguageCode(language)
+        except RateLimited:
+            logging.warning("Rate limited by ipapi")
+
+    if not language:
+        language = "en-US"
+        logging.warning(f"Not able to figure language returning default: {language}")
+
+    if not country:
+        country = "US"
+        logging.warning(f"Not able to figure country returning default: {country}")
+
+    return language, country
+
+
+# todo Could remove this functionality in favor of https://pypi.org/project/translate/
+# That's assuming all activity titles are in English
+def load_localized_activities(language: str) -> ModuleType:
+    try:
+        search_module = importlib.import_module(f"localized_activities.{language}")
+        return search_module
+    except ModuleNotFoundError:
+        logging.warning(f"No search queries found for language: {language}, defaulting to English (en)")
+        return importlib.import_module("localized_activities.en")
+
+CONFIG = loadConfig()
+APPRISE = initApprise()
+LANGUAGE, COUNTRY = getLanguageCountry()
+localized_activities = load_localized_activities(
+    LANGUAGE.split("-")[0] if "-" in LANGUAGE else LANGUAGE
+)
+ACTIVITY_TITLES_TO_QUERIES = localized_activities.title_to_query
+IGNORED_ACTIVITIES = localized_activities.ignore
