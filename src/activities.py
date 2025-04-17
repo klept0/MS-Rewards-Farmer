@@ -213,14 +213,18 @@ class Activities:
 
     def completeActivities(self):
         logging.info("[ACTIVITIES] " + "Trying to complete all activities...")
-        for activity in self.browser.utils.getActivities():
+        activities = self.browser.utils.getActivities()
+        for activity in activities:
             self.completeActivity(activity)
         logging.info("[ACTIVITIES] " + "Done")
 
         # todo Send one email for all accounts?
         if CONFIG.get("apprise.notify.incomplete-activity"):  # todo Use fancy new way
             incompleteActivities: list[str] = []
-            for activity in self.browser.utils.getActivities():  # Have to refresh
+            activitiesBefore = activities
+            activitiesAfter = [activity for activity in self.browser.utils.getActivities() if activity in activitiesBefore]
+
+            for activity in activitiesAfter:
                 activityTitle = cleanupActivityTitle(activity["title"])
                 if (
                     activityTitle not in IGNORED_ACTIVITIES
