@@ -61,6 +61,8 @@ class Activities:
 
             self.browser.utils.waitUntilQuestionRefresh()
 
+            sleep(10)
+
             if numberOfOptions == 8:
                 answers = []
                 for i in range(numberOfOptions):
