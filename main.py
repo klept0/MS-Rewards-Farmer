@@ -162,8 +162,8 @@ def executeBot(currentAccount):
             with Searches(desktopBrowser) as searches:
                 searches.bingSearches()
 
-            goalPoints = utils.getGoalPoints()
-            goalTitle = utils.getGoalTitle()
+            goalPoints = 100 # utils.getGoalPoints()
+            goalTitle = "Title" # utils.getGoalTitle()
 
             remainingSearches = desktopBrowser.getRemainingSearches(
                 desktopAndMobile=True
