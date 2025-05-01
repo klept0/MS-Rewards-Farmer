@@ -383,7 +383,7 @@ class Utils:
             with contextlib.suppress(NoSuchElementException):
                 dismissButtons.extend(self.webdriver.find_elements(by=by, value=value))
         for dismissButton in dismissButtons:
-            logging.debug(f"[DISMISS] Dismissing an element by clicking on {dismissButton}")
+            logging.debug(f"[DISMISS] Dismissing an element by clicking on {dismissButton.get_attribute('outerHTML')}")
             dismissButton.click()
 
     def switchToNewTab(self, timeToWait: float = 10, closeTab: bool = False) -> None:
