@@ -41,6 +41,7 @@ class ReadToEarn:
 
         # Get Referer URL from webdriver
         self.webdriver.get(authorization_url)
+        counter = 0
         while True:
             logging.info("[READ TO EARN] Waiting for Login")
             if self.webdriver.current_url.startswith(
@@ -49,6 +50,10 @@ class ReadToEarn:
                 redirect_response = self.webdriver.current_url
                 break
             time.sleep(1)
+            counter = counter + 1
+            if counter > 5:
+                logging.info("[READ TO EARN] Login Failed")
+                return
 
         logging.info("[READ TO EARN] Logged-in successfully !")
         token = mobileApp.fetch_token(
