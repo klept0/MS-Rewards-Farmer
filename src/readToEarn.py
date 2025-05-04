@@ -29,6 +29,7 @@ class ReadToEarn:
         self.browser = browser
         self.webdriver = browser.webdriver
         self.activities = Activities(browser)
+        self.utils = browser.utils
 
     def completeReadToEarn(self):
 
@@ -55,6 +56,7 @@ class ReadToEarn:
             time.sleep(1)
             counter = counter + 1
             try:
+                logging.info("[READ TO EARN] Trying To Click Stay Signed In Pop-up")
                 self.utils.waitUntilClickable(By.XPATH, "//button[normalize-space()='Yes']").click()
             except NoSuchElementException:
                 logging.info("[READ TO EARN] Can Not Find Stay Signed In Pop-up")
