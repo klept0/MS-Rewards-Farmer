@@ -56,12 +56,15 @@ class ReadToEarn:
                 break
             time.sleep(1)
             counter = counter + 1
-            try:
-                logging.info("[READ TO EARN] Trying To Click Stay Signed In Pop-up")
-                self.utils.waitUntilClickable(By.XPATH, "//button[normalize-space()='Yes']").click()
-            except NoSuchElementException:
-                logging.info("[READ TO EARN] Can Not Find Stay Signed In Pop-up")
-                pass
+            
+            logging.info("[READ TO EARN] Printing Buttons")
+            buttons = self.webdriver.find_elements(By.TAG_NAME, "button")
+            for index, button in enumerate(buttons):
+                if button.is_enabled() and button.is_displayed():
+                    print(f"Button {index + 1}: {button.text}")
+                    if "Skip" in button.text:
+                        logging.info("[Login] Bypass Passkey")
+                        button.click()
                 
             if counter > 5:
                 logging.info("[READ TO EARN] Login Failed")
