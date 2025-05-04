@@ -11,6 +11,7 @@ from requests_oauthlib import OAuth2Session
 from src.browser import Browser
 from .activities import Activities
 from .utils import makeRequestsSession, cooldown
+from selenium.webdriver.common.by import By
 
 # todo Use constant naming style
 client_id = "0000000040170455"
