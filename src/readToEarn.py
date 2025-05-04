@@ -2,7 +2,10 @@ import logging
 import random
 import secrets
 import time
-
+from selenium.common.exceptions import (
+    ElementNotInteractableException,
+    NoSuchElementException,
+)
 from requests_oauthlib import OAuth2Session
 
 from src.browser import Browser
@@ -51,6 +54,12 @@ class ReadToEarn:
                 break
             time.sleep(1)
             counter = counter + 1
+            try:
+                self.utils.waitUntilClickable(By.XPATH, "//button[normalize-space()='Yes']").click()
+            except NoSuchElementException:
+                logging.info("[READ TO EARN] Can Not Find Stay Signed In Pop-up")
+                pass
+                
             if counter > 5:
                 logging.info("[READ TO EARN] Login Failed")
                 return
