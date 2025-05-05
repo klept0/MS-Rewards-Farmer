@@ -387,7 +387,7 @@ class Utils:
                 dismissButton.click()
                 logging.debug(f"[DISMISS] Dismissed an element by clicking on {dismissButton.get_attribute('outerHTML')}")
             except (ElementNotInteractableException, ElementClickInterceptedException, TimeoutException):
-                logging.error(f"[DISMISS] Error dismissing an element by clicking on {dismissButton.get_attribute('outerHTML')}")
+                logging.warning(f"[DISMISS] Can't dismiss an element by clicking on {dismissButton.get_attribute('outerHTML')}")
 
     def switchToNewTab(self, timeToWait: float = 10, closeTab: bool = False) -> None:
         time.sleep(timeToWait)
