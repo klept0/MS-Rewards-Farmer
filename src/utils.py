@@ -343,20 +343,20 @@ class Utils:
             (By.ID, "idSIButton9"),
             (By.ID, "bnp_btn_accept"),
             (By.ID, "acceptButton"),
-            (By.CSS_SELECTOR, ".dashboardPopUpPopUpSelectButton"),
+            (By.CLASS_NAME, "dashboardPopUpPopUpSelectButton"),  # seems to be unclickable
+            (By.CSS_SELECTOR, "#cookie-banner button:first-child"),
+            (By.CSS_SELECTOR, "#wcpConsentBannerCtrl button:first-child"),
         ]
-        for byValue in byValues:
-            dismissButtons = []
-            with contextlib.suppress(NoSuchElementException):
-                dismissButtons = self.webdriver.find_elements(
-                    by=byValue[0], value=byValue[1]
-                )
-            for dismissButton in dismissButtons:
+        dismissButtons = []
+        for by, value in byValues:
+            with contextlib.suppress(NoSuchElementException, TimeoutException):
+                dismissButtons.extend(self.webdriver.find_elements(by=by, value=value))
+        for dismissButton in dismissButtons:
+            try:
                 dismissButton.click()
-        with contextlib.suppress(NoSuchElementException):
-            self.webdriver.find_element(By.ID, "cookie-banner").find_element(
-                By.TAG_NAME, "button"
-            ).click()
+                logging.debug(f"[DISMISS] Dismissed an element by clicking on {dismissButton.get_attribute('outerHTML')}")
+            except (ElementNotInteractableException, ElementClickInterceptedException, TimeoutException):
+                logging.warning(f"[DISMISS] Can't dismiss an element by clicking on {dismissButton.get_attribute('outerHTML')}")
 
     def switchToNewTab(self, timeToWait: float = 10, closeTab: bool = False) -> None:
         time.sleep(timeToWait)
