@@ -86,12 +86,23 @@ class Login:
 
     def execute_login(self) -> None:
         # Email field
-        emailField = self.utils.waitUntilVisible(By.ID, "i0116")
+        
+        buttons = self.webdriver.find_elements(By.TAG_NAME, "button")
+        for index, button in enumerate(buttons):
+            if button.is_enabled() and button.is_displayed():
+                print(f"Button {index + 1}: {button.text}")
+                if "Skip" in button.text:
+                    logging.info("[Login] Bypass Passkey")
+                    button.click()
+                            
+        #emailField = self.utils.waitUntilVisible(By.ID, "i0116")
+        emailField = self.utils.waitUntilVisible(By.ID, "usernameEntry")
         logging.info("[LOGIN] Entering email...")
         emailField.click()
         emailField.send_keys(self.browser.email)
         assert emailField.get_attribute("value") == self.browser.email
-        self.utils.waitUntilClickable(By.ID, "idSIButton9").click()
+        #self.utils.waitUntilClickable(By.ID, "idSIButton9").click()
+        self.utils.waitUntilClickable(By.XPATH, "//button[@type='submit']").click()
 
         # Passwordless check
         isPasswordless = False
@@ -121,7 +132,7 @@ class Login:
             passwordField.click()
             passwordField.send_keys(self.browser.password)
             assert passwordField.get_attribute("value") == self.browser.password
-            self.utils.waitUntilClickable(By.ID, "idSIButton9").click()
+            self.utils.waitUntilClickable(By.XPATH, "//button[@type='submit']").click()
 
             # Check if 2FA is enabled, both device auth and TOTP are supported
             isDeviceAuthEnabled = False
@@ -172,8 +183,17 @@ class Login:
         self.check_locked_user()
         self.check_banned_user()
 
-        self.utils.waitUntilVisible(By.NAME, "kmsiForm")
-        self.utils.waitUntilClickable(By.ID, "acceptButton").click()
+        # Check for Stay Signed In
+        buttons = self.webdriver.find_elements(By.TAG_NAME, "button")
+        for index, button in enumerate(buttons):
+            if button.is_enabled() and button.is_displayed():
+                print(f"Button {index + 1}: {button.text}")
+                if "Yes" in button.text:
+                    logging.info("[Login] Setting Auto Login Preference")
+                    button.click()
+                    
+        #self.utils.waitUntilVisible(By.NAME, "kmsiForm")
+        #self.utils.waitUntilClickable(By.ID, "acceptButton").click()
 
         # TODO: This should probably instead be checked with an element's id,
         # as the hardcoded text might be different in other languages
