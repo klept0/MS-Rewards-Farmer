@@ -47,7 +47,31 @@ class Login:
             self.banned(element)
         except NoSuchElementException:
             pass
-
+    
+    def check_loggin_pref(self):
+        try:
+            buttons = self.webdriver.find_elements(By.TAG_NAME, "button")
+            for index, button in enumerate(buttons):
+                if button.is_enabled() and button.is_displayed():
+                    print(f"Button {index + 1}: {button.text}")
+                    if "Yes" in button.text:
+                        logging.info("[Login] Setting Auto Login Preference")
+                        button.click()
+        except:
+            pass
+    
+    def check_passkey_skip(self):
+        try:
+            buttons = self.webdriver.find_elements(By.TAG_NAME, "button")
+            for index, button in enumerate(buttons):
+                if button.is_enabled() and button.is_displayed():
+                    print(f"Button {index + 1}: {button.text}")
+                    if "Skip" in button.text:
+                        logging.info("[Login] Setting Auto Login Preference")
+                        button.click()
+        except:
+            pass
+            
     def locked(self, element):
         try:
             if element.is_displayed():
@@ -86,14 +110,7 @@ class Login:
 
     def execute_login(self) -> None:
         # Email field
-        
-        buttons = self.webdriver.find_elements(By.TAG_NAME, "button")
-        for index, button in enumerate(buttons):
-            if button.is_enabled() and button.is_displayed():
-                print(f"Button {index + 1}: {button.text}")
-                if "Skip" in button.text:
-                    logging.info("[Login] Bypass Passkey")
-                    button.click()
+        self.check_passkey_skip()
                             
         #emailField = self.utils.waitUntilVisible(By.ID, "i0116")
         emailField = self.utils.waitUntilVisible(By.ID, "usernameEntry")
@@ -184,13 +201,7 @@ class Login:
         self.check_banned_user()
 
         # Check for Stay Signed In
-        buttons = self.webdriver.find_elements(By.TAG_NAME, "button")
-        for index, button in enumerate(buttons):
-            if button.is_enabled() and button.is_displayed():
-                print(f"Button {index + 1}: {button.text}")
-                if "Yes" in button.text:
-                    logging.info("[Login] Setting Auto Login Preference")
-                    button.click()
+        self.check_loggin_pref()
                     
         #self.utils.waitUntilVisible(By.NAME, "kmsiForm")
         #self.utils.waitUntilClickable(By.ID, "acceptButton").click()
