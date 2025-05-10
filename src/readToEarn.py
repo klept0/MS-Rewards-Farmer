@@ -2,12 +2,16 @@ import logging
 import random
 import secrets
 import time
-
+from selenium.common.exceptions import (
+    ElementNotInteractableException,
+    NoSuchElementException,
+)
 from requests_oauthlib import OAuth2Session
 
 from src.browser import Browser
 from .activities import Activities
 from .utils import makeRequestsSession, cooldown
+from selenium.webdriver.common.by import By
 
 # todo Use constant naming style
 client_id = "0000000040170455"
@@ -26,6 +30,7 @@ class ReadToEarn:
         self.browser = browser
         self.webdriver = browser.webdriver
         self.activities = Activities(browser)
+        self.utils = browser.utils
 
     def completeReadToEarn(self):
 
@@ -41,6 +46,7 @@ class ReadToEarn:
 
         # Get Referer URL from webdriver
         self.webdriver.get(authorization_url)
+        counter = 0
         while True:
             logging.info("[READ TO EARN] Waiting for Login")
             if self.webdriver.current_url.startswith(
@@ -49,6 +55,20 @@ class ReadToEarn:
                 redirect_response = self.webdriver.current_url
                 break
             time.sleep(1)
+            counter = counter + 1
+            
+            logging.info("[READ TO EARN] Printing Buttons")
+            buttons = self.webdriver.find_elements(By.TAG_NAME, "button")
+            for index, button in enumerate(buttons):
+                if button.is_enabled() and button.is_displayed():
+                    print(f"Button {index + 1}: {button.text}")
+                    if "Skip" in button.text:
+                        logging.info("[Login] Bypass Passkey")
+                        button.click()
+                
+            if counter > 5:
+                logging.info("[READ TO EARN] Login Failed")
+                return
 
         logging.info("[READ TO EARN] Logged-in successfully !")
         token = mobileApp.fetch_token(

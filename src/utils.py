@@ -39,7 +39,7 @@ from urllib3 import Retry
 
 from .constants import REWARDS_URL, SEARCH_URL
 
-PREFER_BING_INFO = True
+PREFER_BING_INFO = False
 
 
 class Config(dict):
