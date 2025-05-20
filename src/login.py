@@ -86,12 +86,23 @@ class Login:
 
     def execute_login(self) -> None:
         # Email field
-        emailField = self.utils.waitUntilVisible(By.ID, "i0116")
+        try:
+            emailField = self.utils.waitUntilVisible(By.ID, "usernameEntry", 5)
+            logging.debug("[LOGIN] New login form detected.")
+            login_version = "new"
+        except TimeoutException:
+            emailField = self.utils.waitUntilVisible(By.ID, "i0116", 5)
+            logging.debug("[LOGIN] Old login form detected.")
+            login_version = "old"
+            
         logging.info("[LOGIN] Entering email...")
         emailField.click()
         emailField.send_keys(self.browser.email)
         assert emailField.get_attribute("value") == self.browser.email
-        self.utils.waitUntilClickable(By.ID, "idSIButton9").click()
+        if login_version == "old":
+            self.utils.waitUntilClickable(By.ID, "idSIButton9").click()
+        else:
+            self.utils.waitUntilClickable(By.CSS_SELECTOR, "[data-testid='primaryButton']").click()
 
         # Passwordless check
         isPasswordless = False
@@ -121,7 +132,11 @@ class Login:
             passwordField.click()
             passwordField.send_keys(self.browser.password)
             assert passwordField.get_attribute("value") == self.browser.password
-            self.utils.waitUntilClickable(By.ID, "idSIButton9").click()
+            if login_version == "old":
+                self.utils.waitUntilClickable(By.ID, "idSIButton9").click()
+            else:
+                self.utils.waitUntilClickable(By.CSS_SELECTOR, "[data-testid='primaryButton']").click()
+
 
             # Check if 2FA is enabled, both device auth and TOTP are supported
             isDeviceAuthEnabled = False
@@ -172,8 +187,11 @@ class Login:
         self.check_locked_user()
         self.check_banned_user()
 
-        self.utils.waitUntilVisible(By.NAME, "kmsiForm")
-        self.utils.waitUntilClickable(By.ID, "acceptButton").click()
+        if login_version == "old":
+            self.utils.waitUntilVisible(By.NAME, "kmsiForm", timeout=3)
+            self.utils.waitUntilClickable(By.ID, "acceptButton").click()
+        else:
+            self.utils.waitUntilClickable(By.CSS_SELECTOR, "[data-testid='primaryButton']").click()
 
         # TODO: This should probably instead be checked with an element's id,
         # as the hardcoded text might be different in other languages
