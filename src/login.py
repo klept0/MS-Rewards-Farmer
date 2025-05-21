@@ -87,23 +87,23 @@ class Login:
     def execute_login(self) -> None:
         # Email field
         try:
-            emailField = self.utils.waitUntilVisible(By.ID, "usernameEntry", 5)
+            emailField = self.utils.waitUntilVisible(By.ID, "usernameEntry", timeout=5)
             logging.debug("[LOGIN] New login form detected.")
-            login_version = "new"
+            is_new_login_form = True
         except TimeoutException:
-            emailField = self.utils.waitUntilVisible(By.ID, "i0116", 5)
+            emailField = self.utils.waitUntilVisible(By.ID, "i0116", timeout=5)
             logging.debug("[LOGIN] Old login form detected.")
-            login_version = "old"
-            
+            is_new_login_form = False
+    
         logging.info("[LOGIN] Entering email...")
         emailField.click()
         emailField.send_keys(self.browser.email)
         assert emailField.get_attribute("value") == self.browser.email
-        if login_version == "old":
-            self.utils.waitUntilClickable(By.ID, "idSIButton9").click()
-        else:
+        if is_new_login_form:
             self.utils.waitUntilClickable(By.CSS_SELECTOR, "[data-testid='primaryButton']").click()
-
+        else:
+            self.utils.waitUntilClickable(By.ID, "idSIButton9").click()
+    
         # Passwordless check
         isPasswordless = False
         with contextlib.suppress(TimeoutException):
@@ -132,10 +132,10 @@ class Login:
             passwordField.click()
             passwordField.send_keys(self.browser.password)
             assert passwordField.get_attribute("value") == self.browser.password
-            if login_version == "old":
-                self.utils.waitUntilClickable(By.ID, "idSIButton9").click()
-            else:
+            if is_new_login_form:
                 self.utils.waitUntilClickable(By.CSS_SELECTOR, "[data-testid='primaryButton']").click()
+            else:
+                self.utils.waitUntilClickable(By.ID, "idSIButton9").click()
 
 
             # Check if 2FA is enabled, both device auth and TOTP are supported
@@ -187,11 +187,12 @@ class Login:
         self.check_locked_user()
         self.check_banned_user()
 
-        if login_version == "old":
-            self.utils.waitUntilVisible(By.NAME, "kmsiForm", timeout=3)
-            self.utils.waitUntilClickable(By.ID, "acceptButton").click()
-        else:
+        if is_new_login_form:
+            # TODO: There should be a check if this is the "Keep me signed in" Form as for the old login form.
             self.utils.waitUntilClickable(By.CSS_SELECTOR, "[data-testid='primaryButton']").click()
+        else:
+            self.utils.waitUntilVisible(By.NAME, "kmsiForm")
+            self.utils.waitUntilClickable(By.ID, "acceptButton").click()
 
         # TODO: This should probably instead be checked with an element's id,
         # as the hardcoded text might be different in other languages
