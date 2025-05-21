@@ -87,11 +87,11 @@ class Login:
     def execute_login(self) -> None:
         # Email field
         try:
-            emailField = self.utils.waitUntilVisible(By.ID, "usernameEntry", timeout=5)
+            emailField = self.utils.waitUntilVisible(By.ID, "usernameEntry", 5)
             logging.debug("[LOGIN] New login form detected.")
             is_new_login_form = True
         except TimeoutException:
-            emailField = self.utils.waitUntilVisible(By.ID, "i0116", timeout=5)
+            emailField = self.utils.waitUntilVisible(By.ID, "i0116", 5)
             logging.debug("[LOGIN] Old login form detected.")
             is_new_login_form = False
     
