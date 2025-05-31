@@ -155,12 +155,14 @@ def executeBot(currentAccount):
             logging.info(
                 f"[POINTS] You have {formatNumber(startingPoints)} points on your account"
             )
+            
+            with Searches(desktopBrowser) as searches:
+                searches.bingSearches()
+            
+            # Activities After Search For Debugging
             Activities(desktopBrowser).completeActivities()
             PunchCards(desktopBrowser).completePunchCards()
             # VersusGame(desktopBrowser).completeVersusGame()
-
-            with Searches(desktopBrowser) as searches:
-                searches.bingSearches()
 
             goalPoints = 100 # utils.getGoalPoints()
             goalTitle = "Title" # utils.getGoalTitle()
