@@ -138,11 +138,11 @@ class Searches:
                 By.ID, "sb_form_q", timeToWait=40
             )
             searchbar.clear()
-            trendKeyword = trendKeywords.pop(0)
+            trendKeyword = trendKeywords.pop()
             logging.debug(f"trendKeyword={trendKeyword}")
-            sleep(1)
+            sleep(10)
             searchbar.send_keys(trendKeyword)
-            sleep(1)
+            sleep(10)
             searchbar.submit()
 
             pointsAfter = self.browser.utils.getAccountPoints()
