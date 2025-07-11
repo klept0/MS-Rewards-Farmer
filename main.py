@@ -153,7 +153,7 @@ def executeBot(currentAccount):
             Login(desktopBrowser).login()
             startingPoints = utils.getAccountPoints()
             logging.info(
-                f"[POINTS] You have {formatNumber(startingPoints)} points on your account"
+                f"[POINTS] You have {formatNumber(startingPoints)} points on your account - Searching First"
             )
             
             with Searches(desktopBrowser) as searches:
