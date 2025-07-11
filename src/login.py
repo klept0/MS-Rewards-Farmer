@@ -113,7 +113,7 @@ class Login:
         self.check_passkey_skip()
                             
         #emailField = self.utils.waitUntilVisible(By.ID, "i0116")
-        emailField = self.utils.waitUntilVisible(By.ID, "usernameEntry")
+        emailField = self.utils.waitUntilVisible(By.XPATH, "//input[@id='usernameEntry']")
         logging.info("[LOGIN] Entering email...")
         emailField.click()
         emailField.send_keys(self.browser.email)
