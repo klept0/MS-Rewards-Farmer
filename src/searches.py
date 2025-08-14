@@ -102,7 +102,12 @@ class Searches:
 
     def bingSearch(self) -> None:
         # Function to perform a single Bing search
-        pointsBefore = self.browser.utils.getAccountPoints()
+        try:
+            pointsBefore = self.browser.utils.getAccountPoints()
+        except:
+            logging.error("[BING] Error Getting AccountPoints")
+            cooldown()
+            return
 
         trend = list(self.googleTrendsShelf.keys())[0]
         trendKeywords = self.googleTrendsShelf[trend].trend_keywords
