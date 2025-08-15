@@ -150,7 +150,12 @@ class Searches:
             sleep(10)
             searchbar.submit()
 
-            pointsAfter = self.browser.utils.getAccountPoints()
+            try:
+                pointsAfter = self.browser.utils.getAccountPoints()
+            except:
+                logging.error("[BING] Error Getting AccountPoints After Search - Assume Search Successfull")
+                pointsAfter = pointsBefore + 3
+                
             if pointsBefore < pointsAfter:
                 del self.googleTrendsShelf[trend]
                 cooldown()
