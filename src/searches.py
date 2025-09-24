@@ -102,7 +102,12 @@ class Searches:
 
     def bingSearch(self) -> None:
         # Function to perform a single Bing search
-        pointsBefore = self.browser.utils.getAccountPoints()
+        try:
+            pointsBefore = self.browser.utils.getAccountPoints()
+        except:
+            logging.error("[BING] Error Getting AccountPoints")
+            cooldown()
+            return
 
         trend = list(self.googleTrendsShelf.keys())[0]
         trendKeywords = self.googleTrendsShelf[trend].trend_keywords
@@ -138,14 +143,19 @@ class Searches:
                 By.ID, "sb_form_q", timeToWait=40
             )
             searchbar.clear()
-            trendKeyword = trendKeywords.pop(0)
+            trendKeyword = trendKeywords.pop()
             logging.debug(f"trendKeyword={trendKeyword}")
-            sleep(1)
+            sleep(10)
             searchbar.send_keys(trendKeyword)
-            sleep(1)
+            sleep(10)
             searchbar.submit()
 
-            pointsAfter = self.browser.utils.getAccountPoints()
+            try:
+                pointsAfter = self.browser.utils.getAccountPoints()
+            except:
+                logging.error("[BING] Error Getting AccountPoints After Search - Assume Search Successfull")
+                pointsAfter = pointsBefore + 3
+                
             if pointsBefore < pointsAfter:
                 del self.googleTrendsShelf[trend]
                 cooldown()

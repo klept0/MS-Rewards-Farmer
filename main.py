@@ -153,17 +153,19 @@ def executeBot(currentAccount):
             Login(desktopBrowser).login()
             startingPoints = utils.getAccountPoints()
             logging.info(
-                f"[POINTS] You have {formatNumber(startingPoints)} points on your account"
+                f"[POINTS] You have {formatNumber(startingPoints)} points on your account - Searching First"
             )
+            
+            with Searches(desktopBrowser) as searches:
+                searches.bingSearches()
+            
+            # Activities After Search For Debugging
             Activities(desktopBrowser).completeActivities()
             PunchCards(desktopBrowser).completePunchCards()
             # VersusGame(desktopBrowser).completeVersusGame()
 
-            with Searches(desktopBrowser) as searches:
-                searches.bingSearches()
-
-            goalPoints = utils.getGoalPoints()
-            goalTitle = utils.getGoalTitle()
+            goalPoints = 100 # utils.getGoalPoints()
+            goalTitle = "Title" # utils.getGoalTitle()
 
             remainingSearches = desktopBrowser.getRemainingSearches(
                 desktopAndMobile=True

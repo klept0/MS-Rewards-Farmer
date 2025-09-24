@@ -236,7 +236,13 @@ class Browser:
         if PREFER_BING_INFO:
             bingInfo = self.utils.getBingInfo()
         else:
-            bingInfo = self.utils.getDashboardData()
+            try:
+                bingInfo = self.utils.getDashboardData()
+            except:
+                logging.info("Dashboard Error: Forcing Searches Remaining to 1")
+                return RemainingSearches(
+                desktop=1, mobile=1
+            )
         searchPoints = 1
         if PREFER_BING_INFO:
             counters = bingInfo["flyoutResult"]["userStatus"]["counters"]
