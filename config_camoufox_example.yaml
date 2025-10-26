@@ -1,0 +1,22 @@
+# Configuration example for testing Camoufox integration
+# This is a sample configuration file showing how to use Camoufox
+
+browser:
+  type: "camoufox"      # Options: "chrome", "camoufox"
+  visible: true         # Set to true for testing to see the browser
+  geolocation: "US"
+  language: "en-US"
+  proxy: null           # Set proxy if needed
+
+# Add your account credentials here for testing
+accounts:
+  - email: "your_email@example.com"
+    password: "your_password"
+    # totp: "your_totp_secret"  # Optional
+
+search:
+  type: "desktop"       # For testing, just use desktop
+
+# Disable notifications during testing
+apprise:
+  enabled: false
