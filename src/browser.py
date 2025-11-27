@@ -236,29 +236,36 @@ class Browser:
         if PREFER_BING_INFO:
             bingInfo = self.utils.getBingInfo()
         else:
-            try:
-                bingInfo = self.utils.getDashboardData()
-            except:
-                logging.info("Dashboard Error: Forcing Searches Remaining to 1")
-                return RemainingSearches(
-                desktop=1, mobile=1
-            )
-        searchPoints = 1
+            bingInfo = self.utils.getDashboardData()
+
         if PREFER_BING_INFO:
             counters = bingInfo["flyoutResult"]["userStatus"]["counters"]
         else:
             counters = bingInfo["userStatus"]["counters"]
+
         pcSearch: dict = counters["PCSearch" if PREFER_BING_INFO else "pcSearch"][0]
         pointProgressMax: int = pcSearch["pointProgressMax"]
 
-        searchPoints: int
-        if pointProgressMax in [30, 90, 102]:
+        if pointProgressMax in [30, 90, 102, 180]:
             searchPoints = 3
-        elif pointProgressMax in [50, 150] or pointProgressMax >= 170:
+        elif pointProgressMax in [50, 150]:
             searchPoints = 5
+        else:
+            logging.warning(
+                "Unknown pointProgressMax=%s, defaulting searchPoints=3",
+                pointProgressMax,
+            )
+            searchPoints = 3
+
         pcPointsRemaining = pcSearch["pointProgressMax"] - pcSearch["pointProgress"]
-        assert pcPointsRemaining % searchPoints == 0
-        remainingDesktopSearches: int = int(pcPointsRemaining / searchPoints)
+        if pcPointsRemaining % searchPoints != 0:
+            logging.warning(
+                "pcPointsRemaining (%s) not divisible by searchPoints (%s); "
+                "rounding down.",
+                pcPointsRemaining,
+                searchPoints,
+            )
+        remainingDesktopSearches: int = int(pcPointsRemaining // searchPoints)
 
         if PREFER_BING_INFO:
             activeLevel = bingInfo["userInfo"]["profile"]["attributes"]["level"]
@@ -272,8 +279,14 @@ class Browser:
             mobilePointsRemaining = (
                 mobileSearch["pointProgressMax"] - mobileSearch["pointProgress"]
             )
-            assert mobilePointsRemaining % searchPoints == 0
-            remainingMobileSearches = int(mobilePointsRemaining / searchPoints)
+            if mobilePointsRemaining % searchPoints != 0:
+                logging.warning(
+                    "mobilePointsRemaining (%s) not divisible by searchPoints (%s); "
+                    "rounding down.",
+                    mobilePointsRemaining,
+                    searchPoints,
+                )
+            remainingMobileSearches = int(mobilePointsRemaining // searchPoints)
         elif activeLevel == "Level1":
             pass
         else:
